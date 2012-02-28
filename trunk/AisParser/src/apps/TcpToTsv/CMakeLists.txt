@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 2.8)
+project( TcpToTsv )
+add_executable( TcpToTsv TcpToTsv.cpp )
+FILE(GLOB BOOST_LIBRARIES ${BOOST_LIBRARY_PATH}/*.lib)
+set(LIBRARIES ${BOOST_LIBRARIES})
+set(INCLUDES ${BOOST_INCLUDE_DIR} ${AIS_PARSER_SRC_DIR})
+include_directories( TcpToTsv ${INCLUDES})
+target_link_libraries( TcpToTsv ${LIBRARIES} )

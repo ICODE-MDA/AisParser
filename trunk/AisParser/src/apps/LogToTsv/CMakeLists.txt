@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 2.8)
+project( LogToTsv )
+add_executable( LogToTsv LogToTsv.cpp )
+FILE(GLOB BOOST_LIBRARIES ${BOOST_LIBRARY_PATH}/*.lib)
+set(LIBRARIES ${BOOST_LIBRARIES})
+set(INCLUDES ${BOOST_INCLUDE_DIR} ${AIS_PARSER_SRC_DIR})
+include_directories( LogToTsv ${INCLUDES})
+target_link_libraries( LogToTsv ${LIBRARIES} )
