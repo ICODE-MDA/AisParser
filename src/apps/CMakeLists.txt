@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 2.8)
+project( AisParser )
+add_subdirectory( CannedAisServer )
+add_subdirectory( TcpToTsv )
+add_subdirectory( LogToTsv )
+add_subdirectory( TcpToDb )
+add_subdirectory( LogToDb )
