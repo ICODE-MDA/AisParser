@@ -84,7 +84,9 @@ int main(int argc, char** argv)
 			{
 				aisMessageParser.addData(aisSentenceParser.getData());	
 				//if the current sentence is part of a multipart message
-				//grab the next message until you have them all
+				//grab the next message until you have them all, or message is invalid
+				try
+				{
 				while(aisSentenceParser.getSentenceNumber() < aisSentenceParser.getNumberOfSentences())
 				{
 					aisSentenceParser.setSentence(aisInputSource.getNextSentence());
@@ -93,7 +95,8 @@ int main(int argc, char** argv)
 					}
 					else
 					{
-						aisDebug("Invalid multipart message:\n" + aisSentenceParser.getCurrentSentence());
+						//aisDebug("Invalid multipart message:\n" + aisSentenceParser.getCurrentSentence());
+						throw exception("Invalid multipart message");
 					}
 				}
 
@@ -104,6 +107,11 @@ int main(int argc, char** argv)
 				aisMessage.setSTREAMID(aisSentenceParser.getStreamId());
 
 				aisWriter.writeEntry(aisMessage);		
+				}
+				catch(exception &e)
+				{
+					cerr << e.what() << endl;
+				}
 			}
 			else
 			{
