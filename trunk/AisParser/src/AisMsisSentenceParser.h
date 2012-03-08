@@ -30,6 +30,17 @@ public:
 	bool isMessageValid(){
 		if(m_parsedSentence.size() == 8 || m_parsedSentence.size() == 9 )
 		{
+			try
+			{
+				m_numberOfSentences = boost::lexical_cast<int>(m_parsedSentence[1]);
+				m_currentSentenceNumber = boost::lexical_cast<int>(m_parsedSentence[2]);
+			}
+			catch(std::exception &e)
+			{
+				aisDebug(e.what() << "\nMessage:" << m_fullSentence);
+				return false;
+			}
+
 			if(m_parsedSentence[0].size() == 6)
 			{
 				if(m_parsedSentence[0].substr(3,3).compare("VDM") == 0)
@@ -117,17 +128,17 @@ public:
 	}
 
 	/**
-	Call isChecksumValid() before using this function
+	Call isMessageValid() before using this function
 	*/
 	int getNumberOfSentences(){
-		return boost::lexical_cast<int>(m_parsedSentence[1]);
+		return m_numberOfSentences;
 	}
 
 	/**
-	Call isChecksumValid() before using this function
+	Call isMessageValid() before using this function
 	*/
 	int getSentenceNumber(){
-		return boost::lexical_cast<int>(m_parsedSentence[2]);
+		return m_currentSentenceNumber;
 	}
 
 	/**

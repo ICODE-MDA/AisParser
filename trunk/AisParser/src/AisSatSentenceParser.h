@@ -31,10 +31,32 @@ public:
 	bool isMessageValid(){
 		if(m_parsedSentence.size() == 9 || m_parsedSentence.size() == 10 )
 		{
-			if((m_parsedSentence[0].compare("!AIVDM")==0) || (m_parsedSentence[0].compare("!BSVDM")==0)){
-				return isChecksumValid();
-			}else{
-				aisDebug("Message does not have !AIVDM or !BSVDM begining");
+			try
+			{
+				m_numberOfSentences = boost::lexical_cast<int>(m_parsedSentence[1]);
+				m_currentSentenceNumber = boost::lexical_cast<int>(m_parsedSentence[2]);
+			}
+			catch(std::exception &e)
+			{
+				aisDebug(e.what() << "\nMessage:" << m_fullSentence);
+				return false;
+			}
+
+			if(m_parsedSentence[0].size() == 6)
+			{
+				if(m_parsedSentence[0].substr(3,3).compare("VDM") == 0)
+				{
+					return isChecksumValid();
+				}
+				else
+				{
+					aisDebug("Message does not have !**VDM begining\n" + m_fullSentence);
+					return false;
+				}
+			}
+			else
+			{
+				aisDebug("Message does not have acceptable first entry\n" + m_fullSentence);
 				return false;
 			}
 		}
@@ -100,17 +122,17 @@ public:
 	}
 
 	/**
-	Call isChecksumValid() before using this function
+	Call isMessageValid() before using this function
 	*/
 	int getNumberOfSentences(){
-		return boost::lexical_cast<int>(m_parsedSentence[1]);
+		return m_numberOfSentences;
 	}
 
 	/**
-	Call isChecksumValid() before using this function
+	Call isMessageValid() before using this function
 	*/
 	int getSentenceNumber(){
-		return boost::lexical_cast<int>(m_parsedSentence[2]);
+		return m_currentSentenceNumber;
 	}
 
 	/**
@@ -121,7 +143,6 @@ public:
 	}
 
 private:
-
 };
 
 #endif

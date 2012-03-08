@@ -84,26 +84,34 @@ int main(int argc, char** argv)
 			{
 				aisMessageParser.addData(aisSentenceParser.getData());	
 				//if the current sentence is part of a multipart message
-				//grab the next message until you have them all
-				while(aisSentenceParser.getSentenceNumber() < aisSentenceParser.getNumberOfSentences())
+				//grab the next message until you have them all, or message is invalid
+				try
 				{
-					aisSentenceParser.setSentence(aisInputSource.getNextSentence());
-					if(aisSentenceParser.isMessageValid()){
-						aisMessageParser.addData(aisSentenceParser.getData());	
-					}
-					else
+					while(aisSentenceParser.getSentenceNumber() < aisSentenceParser.getNumberOfSentences())
 					{
-						aisDebug("Invalid multipart message:\n" + aisSentenceParser.getCurrentSentence());
+						aisSentenceParser.setSentence(aisInputSource.getNextSentence());
+						if(aisSentenceParser.isMessageValid()){
+							aisMessageParser.addData(aisSentenceParser.getData());	
+						}
+						else
+						{
+						//	aisDebug("Invalid multipart message:\n" + aisSentenceParser.getCurrentSentence());
+							throw exception("Invalid multipart message");
+						}
 					}
+
+					AisMessage aisMessage = aisMessageParser.parseMessage();
+					//add time from ais sentence to the ais message
+					aisMessage.setDATETIME(aisSentenceParser.getTimestamp());
+					//add streamid from ais sentence to the ais message
+					aisMessage.setSTREAMID(aisSentenceParser.getStreamId());
+
+					aisWriter.writeEntry(aisMessage);	
 				}
-
-				AisMessage aisMessage = aisMessageParser.parseMessage();
-				//add time from ais sentence to the ais message
-				aisMessage.setDATETIME(aisSentenceParser.getTimestamp());
-				//add streamid from ais sentence to the ais message
-				aisMessage.setSTREAMID(aisSentenceParser.getStreamId());
-
-				aisWriter.writeEntry(aisMessage);		
+				catch(exception &e)
+				{
+					cerr << e.what() << endl;
+				}
 			}
 			else
 			{

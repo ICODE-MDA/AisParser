@@ -26,6 +26,8 @@ public:
 	AisSentenceParser(std::string sentence){
 		m_fullSentence = sentence;
 		boost::split(m_parsedSentence, sentence, boost::is_any_of(","));
+		m_numberOfSentences = 0;
+		m_currentSentenceNumber = 0;
 	}
 
 	void setSentence(std::string sentence){
@@ -62,12 +64,12 @@ public:
 	virtual std::string getStreamId() = 0;
 
 	/**
-	Call isChecksumValid() before using this function
+	Call isMessageValid() before using this function
 	*/
 	virtual int getNumberOfSentences() = 0;
 
 	/**
-	Call isChecksumValid() before using this function
+	Call isMessageValid() before using this function
 	*/
 	virtual int getSentenceNumber() = 0;
 
@@ -79,6 +81,8 @@ public:
 protected:
 	std::string m_fullSentence;
 	std::vector<std::string> m_parsedSentence;
+	int m_numberOfSentences;
+	int m_currentSentenceNumber;
 };
 
 #endif
