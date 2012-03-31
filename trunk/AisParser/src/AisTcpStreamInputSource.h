@@ -55,7 +55,6 @@ public:
 		try
 		{
 			std::getline(stream, sentence);
-			std::cerr << sentence << std::endl;
 		}
 		catch(std::exception& e)
 		{
