@@ -29,6 +29,11 @@ public:
 
 
 	bool isMessageValid(){
+		if(m_fullSentence.size() > 1024)
+		{
+			aisDebug("Invalid Message. Message longer than 1024 characters.");
+			return false;
+		}
 		if(m_parsedSentence.size() == 9 || m_parsedSentence.size() == 10 )
 		{
 			try
@@ -62,7 +67,7 @@ public:
 		}
 		else
 		{
-			aisDebug("Message does not have 9||10 columns");
+			aisDebug("Message does not have 9||10 columns\n" + m_fullSentence);
 			return false;
 		}
 	}
