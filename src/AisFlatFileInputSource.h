@@ -35,7 +35,7 @@ public:
 	*/
 	bool isReady()
 	{
-		return m_inputFile.good() && (!m_inputFile.eof());
+		return m_inputFile.good();
 	}
 	
 	/**
@@ -44,13 +44,13 @@ public:
 	*/
 	string getNextSentence()
 	{
-		m_inputFile.getline(m_sentence,1024);
-		return (string)m_sentence;
+		getline(m_inputFile, m_sentence); 
+		return m_sentence;
 	}
 
 
 private:
-	char m_sentence[1024];
+	string m_sentence;
 	ifstream m_inputFile;
 };
 #endif
