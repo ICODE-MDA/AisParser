@@ -2,6 +2,7 @@
 #define AisTsvWriter_h
 
 #include <string>
+#include <sstream>
 #include <fstream>
 #include <iomanip>
 
@@ -12,6 +13,16 @@ class AisTsvWriter : public AisWriter{
 public:
 	AisTsvWriter(std::string filename){
 		of.open(filename, std::ios::out);
+	}
+
+	AisTsvWriter(int year, int month, int day, int partition){
+		stringstream filename;
+		filename << setfill('0');
+		filename << year;
+		filename << setw(2) << month;
+		filename << setw(2) << day;
+		filename << ".p" << partition << ".tsv";
+		of.open(filename.str(), std::ios::out);
 	}
 
 	~AisTsvWriter(){

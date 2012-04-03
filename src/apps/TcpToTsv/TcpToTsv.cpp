@@ -2,6 +2,7 @@
 #include <string>
 
 #include <boost/timer/timer.hpp>
+#include <boost/date_time/gregorian/gregorian.hpp>
 
 //Input sources
 #include <AisTcpStreamInputSource.h>
@@ -63,13 +64,14 @@ int main(int argc, char** argv)
 	AisTcpStreamInputSource aisInputSource(host, port);
 	
 	unsigned int partition = 0;
-
+		
 	while(aisInputSource.isReady())
 	{
 
+		boost::gregorian::date d(boost::gregorian::day_clock::universal_day());
 		//Define output class (an AisWriter)
 		//STEPX: choose the correct type of output source
-		AisTsvWriter aisWriter(host+"port"+port+".p" + boost::lexical_cast<string>(partition++) + ".tsv");
+		AisTsvWriter aisWriter(d.year(), d.month().as_number(), d.day().as_number(), partition++);
 
 		if(!aisWriter.isReady())
 		{
@@ -82,8 +84,8 @@ int main(int argc, char** argv)
 
 			//load the next sentence from the AIS input to the parser
 			//STEPX: choose the correct type of sentence parser
-			//AisMsisSentenceParser aisSentenceParser(aisInputSource.getNextSentence());
-			AisSatSentenceParser aisSentenceParser(aisInputSource.getNextSentence());
+			AisMsisSentenceParser aisSentenceParser(aisInputSource.getNextSentence());
+			//AisSatSentenceParser aisSentenceParser(aisInputSource.getNextSentence());
 			AisMessageParser aisMessageParser;
 
 			if(aisSentenceParser.isMessageValid())
