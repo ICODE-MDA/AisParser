@@ -28,22 +28,22 @@ cmake -G "Visual Studio 10"^
 
 rem Create scripts to put the Oracle binaries in the path for running 
 
-rem LogToDb Release
-mkdir .\apps\LogToDb\Release
-echo set OLDPATH=%%PATH%% >> .\apps\LogToDb\Release\LogToDb.bat
-echo set PATH=%oracle_bin_dir%;%%PATH%% >> .\apps\LogToDb\Release\LogToDb.bat
-echo LogToDb.exe %%1 %%2 %%3 %%4 %%5 %%6 %%7 >> .\apps\LogToDb\Release\LogToDb.bat
-echo set PATH=%%OLDPATH%% >> .\apps\LogToDb\Release\LogToDb.bat
-echo set OLDPATH= >> .\apps\LogToDb\Release\LogToDb.bat
+rem LogToOracleDb Release
+mkdir .\apps\LogToOracleDb\Release
+echo set OLDPATH=%%PATH%% >> .\apps\LogToOracleDb\Release\LogToOracleDb.bat
+echo set PATH=%oracle_bin_dir%;%%PATH%% >> .\apps\LogToOracleDb\Release\LogToOracleDb.bat
+echo LogToOracleDb.exe %%1 %%2 %%3 %%4 %%5 %%6 %%7 >> .\apps\LogToOracleDb\Release\LogToOracleDb.bat
+echo set PATH=%%OLDPATH%%  >> .\apps\LogToOracleDb\Release\LogToOracleDb.bat
+echo set OLDPATH=  >> .\apps\LogToOracleDb\Release\LogToOracleDb.bat
 
 
 rem TcpToDb Release
-mkdir .\apps\TcpToDb\Release
-echo set OLDPATH=%%PATH%% >> .\apps\TcpToDb\Release\TcpToDb.bat
-echo set PATH=%oracle_bin_dir%;%%PATH%% >> .\apps\TcpToDb\Release\TcpToDb.bat
-echo TcpToDb.exe %%1 %%2 %%3 %%4 %%5 %%6 %%7 %%8 >> .\apps\TcpToDb\Release\TcpToDb.bat
-echo set PATH=%%OLDPATH%% >> .\apps\TcpToDb\Release\TcpToDb.bat
-echo set OLDPATH= >> .\apps\TcpToDb\Release\TcpToDb.bat
+mkdir .\apps\TcpToOracleDb\Release
+echo set OLDPATH=%%PATH%% >> .\apps\TcpToOracleDb\Release\TcpToOracleDb.bat
+echo set PATH=%oracle_bin_dir%;%%PATH%% >> .\apps\TcpToOracleDb\Release\TcpToOracleDb.bat
+echo TcpToOracleDb.exe %%1 %%2 %%3 %%4 %%5 %%6 %%7 %%8 >> .\apps\TcpToOracleDb\Release\TcpToOracleDb.bat
+echo set PATH=%%OLDPATH%% >> .\apps\TcpToOracleDb\Release\TcpToOracleDb.bat
+echo set OLDPATH= >> .\apps\TcpToOracleDb\Release\TcpToOracleDb.bat
 
 
 rem Create scripts to put the Mysql binaries in the path for running 
@@ -52,7 +52,7 @@ rem LogToMySqlDb Release
 mkdir .\apps\LogToMySqlDb\Release
 echo set OLDPATH=%%PATH%% >> .\apps\LogToMySqlDb\Release\LogToMySqlDb.bat
 echo set PATH=%mysql_bin_dir%;%%PATH%% >> .\apps\LogToMySqlDb\Release\LogToMySqlDb.bat
-echo LogToDb.exe %%1 %%2 %%3 %%4 %%5 %%6 %%7 >> .\apps\LogToMySqlDb\Release\LogToMySqlDb.bat
+echo LogToMySqlDb.exe %%1 %%2 %%3 %%4 %%5 %%6 %%7 >> .\apps\LogToMySqlDb\Release\LogToMySqlDb.bat
 echo set PATH=%%OLDPATH%% >> .\apps\LogToMySqlDb\Release\LogToMySqlDb.bat
 echo set OLDPATH= >> .\apps\LogToMySqlDb\Release\LogToMySqlDb.bat
 
@@ -61,7 +61,7 @@ rem TcpToMySqlDb Release
 mkdir .\apps\TcpToMySqlDb\Release
 echo set OLDPATH=%%PATH%% >> .\apps\TcpToMySqlDb\Release\TcpToMySqlDb.bat
 echo set PATH=%mysql_bin_dir%;%%PATH%% >> .\apps\TcpToMySqlDb\Release\TcpToMySqlDb.bat
-echo TcpToDb.exe %%1 %%2 %%3 %%4 %%5 %%6 %%7 %%8 >> .\apps\TcpToMySqlDb\Release\TcpToMySqlDb.bat
+echo TcpToMySqlDb.exe %%1 %%2 %%3 %%4 %%5 %%6 %%7 %%8 >> .\apps\TcpToMySqlDb\Release\TcpToMySqlDb.bat
 echo set PATH=%%OLDPATH%% >> .\apps\TcpToMySqlDb\Release\TcpToMySqlDb.bat
 echo set OLDPATH= >> .\apps\TcpToMySqlDb\Release\TcpToMySqlDb.bat
 
