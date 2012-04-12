@@ -1,4 +1,5 @@
 #include <iostream>
+#include <stdexcept>
 #include <string>
 
 #include <boost/timer/timer.hpp>
@@ -108,7 +109,7 @@ int main(int argc, char** argv)
 							else
 							{
 								//aisDebug("Invalid multipart message:\n" + aisSentenceParser.getCurrentSentence());
-								throw exception("Invalid multipart message");
+								throw std::runtime_error("Invalid multipart message");
 							}
 						}
 
