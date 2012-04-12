@@ -26,7 +26,7 @@ void usage()
 
 void loadData(string filename, vector<string> &messages)
 {
-	ifstream inFile(filename);
+	ifstream inFile(filename.c_str(), std::ios_base::in);
 	if(!inFile.is_open())
 	{
 		cerr << "Could not open input file: " << filename << endl;

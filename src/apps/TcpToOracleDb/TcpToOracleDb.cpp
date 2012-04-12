@@ -1,11 +1,12 @@
 #include <iostream>
+#include <stdexcept>
 #include <string>
 
 #include <boost/timer/timer.hpp>
 
 //Input sources
-#include <AisFlatFileInputSource.h>
-//#include <AisTcpStreamInputSource.h>
+//#include <AisFlatFileInputSource.h>
+#include <AisTcpStreamInputSource.h>
 
 //Output sources
 #include <AisDatabaseWriter.h>
@@ -22,10 +23,11 @@
 
 using namespace std;
 
+
 void usage()
 {
-	cerr << "AisParserApp.exe <input-filename> <db-username> <db-password> <db-hostname> <db-name> <db-table> <db-numIterations>" << endl;
-	cerr << "For example:\n AisParserApp.exe 20111010.log username password databaseserver.example.com exampleDB AISTable 100000" << endl;
+	cerr << "AisParserApp.exe <hostname> <port> <db-username> <db-password> <db-hostname> <db-name> <db-table> <db-numIterations>" << endl;
+	cerr << "For example:\n AisParserApp.exe localhost 2410 username password databaseserver.example.com exampleDB AISTable 100000" << endl;
 }
 
 //========================================================================================
@@ -37,7 +39,7 @@ int main(int argc, char** argv)
 {
 
 	//parse args
-	if(argc!=8)
+	if(argc!=9)
 	{
 		usage();
 		return -1;
@@ -45,23 +47,22 @@ int main(int argc, char** argv)
 
 	boost::timer::auto_cpu_timer timer;
 
-	string filename = argv[1];
-	string db_user = argv[2];
-	string db_pass = argv[3];
-	string db_host = argv[4];
-	string db_name = argv[5];
-	string db_table = argv[6];
-	string db_numIterations = argv[7];
+	std::string host = argv[1];
+	std::string port = argv[2];
+	string db_user = argv[3];
+	string db_pass = argv[4];
+	string db_host = argv[5];
+	string db_name = argv[6];
+	string db_table = argv[7];
+	string db_numIterations = argv[8];
 
 	//Define input class (an AisInputSource)
 	//STEPX: choose the correct type of input source
-	AisFlatFileInputSource aisInputSource(filename);
-	
+	AisTcpStreamInputSource aisInputSource(host, port);
 	
 	//Define output class (an AisWriter)
 	//STEPX: choose the correct type of output source
 	AisDatabaseWriter aisWriter(db_user, db_pass, db_host, db_name, db_table, boost::lexical_cast<int>(db_numIterations));
-
 
 	if(!aisWriter.isReady())
 	{
@@ -87,26 +88,26 @@ int main(int argc, char** argv)
 				//grab the next message until you have them all, or message is invalid
 				try
 				{
-				while(aisSentenceParser.getSentenceNumber() < aisSentenceParser.getNumberOfSentences())
-				{
-					aisSentenceParser.setSentence(aisInputSource.getNextSentence());
-					if(aisSentenceParser.isMessageValid()){
-						aisMessageParser.addData(aisSentenceParser.getData());	
-					}
-					else
+					while(aisSentenceParser.getSentenceNumber() < aisSentenceParser.getNumberOfSentences())
 					{
-						//aisDebug("Invalid multipart message:\n" + aisSentenceParser.getCurrentSentence());
-						throw exception("Invalid multipart message");
+						aisSentenceParser.setSentence(aisInputSource.getNextSentence());
+						if(aisSentenceParser.isMessageValid()){
+							aisMessageParser.addData(aisSentenceParser.getData());	
+						}
+						else
+						{
+						//	aisDebug("Invalid multipart message:\n" + aisSentenceParser.getCurrentSentence());
+							throw std::runtime_error("Invalid multipart message");
+						}
 					}
-				}
 
-				AisMessage aisMessage = aisMessageParser.parseMessage();
-				//add time from ais sentence to the ais message
-				aisMessage.setDATETIME(aisSentenceParser.getTimestamp());
-				//add streamid from ais sentence to the ais message
-				aisMessage.setSTREAMID(aisSentenceParser.getStreamId());
+					AisMessage aisMessage = aisMessageParser.parseMessage();
+					//add time from ais sentence to the ais message
+					aisMessage.setDATETIME(aisSentenceParser.getTimestamp());
+					//add streamid from ais sentence to the ais message
+					aisMessage.setSTREAMID(aisSentenceParser.getStreamId());
 
-				aisWriter.writeEntry(aisMessage);		
+					aisWriter.writeEntry(aisMessage);	
 				}
 				catch(exception &e)
 				{
