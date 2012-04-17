@@ -12,11 +12,13 @@ set oracle_includes="D:\libraries\oracle\instantclient-sdk-nt-11.2.0.2.0\include
 set oracle_library_dir="D:\libraries\oracle\instantclient-sdk-nt-11.2.0.2.0\lib\msvc"
 set mysql_includes="D:\libraries\mysql\v110\include"
 set mysql_library_dir="D:\libraries\mysql\v110\lib"
+set icode_third_party_dir="D:\libraries\icode\3rd-party"
 set oracle_bin_dir=D:\libraries\oracle\instantclient-sdk-nt-11.2.0.2.0\bin
 set mysql_bin_dir=D:\libraries\mysql\v110\lib
 
 cmake -G "Visual Studio 10"^
  -DAIS_PARSER_SRC_DIR=%ais_parser_src_dir%^
+ -DICODE_THIRD_PARTY_DIR=%icode_third_party_dir%^
  -DORACLE_INCLUDE_DIR=%oracle_includes%^
  -DORACLE_LIBRARY_PATH=%oracle_library_dir%^
  -DMYSQL_INCLUDE_DIR=%mysql_includes%^

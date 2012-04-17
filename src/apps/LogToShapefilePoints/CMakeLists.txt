@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 2.8)
+project( LogToShapefilePoints )
+add_executable( LogToShapefilePoints LogToShapefilePoints.cpp )
+FILE(GLOB BOOST_LIBRARIES ${BOOST_LIBRARY_PATH}/*.lib)
+set(LIBRARIES ${BOOST_LIBRARIES} ${ICODE_THIRD_PARTY_DIR}/lib/win32/shapelib.lib)
+set(INCLUDES ${BOOST_INCLUDE_DIR} ${AIS_PARSER_SRC_DIR} ${ICODE_THIRD_PARTY_DIR}/include)
+include_directories( LogToShapefilePoints ${INCLUDES})
+target_link_libraries( LogToShapefilePoints ${LIBRARIES} )
