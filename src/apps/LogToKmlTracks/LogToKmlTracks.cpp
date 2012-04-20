@@ -1,6 +1,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string>
+#include <set>
 
 #include <boost/timer/timer.hpp>
 #include <boost/lexical_cast.hpp>
@@ -10,7 +11,7 @@
 #include <AisFlatFileInputSource.h>
 
 //Output sources
-#include <AisTsvWriter.h>
+#include <AisKmlTrackWriter.h>
 
 //Parsers
 #include <AisMsisSentenceParser.h>
@@ -28,6 +29,7 @@ void usage()
 	cerr << "Will create a file named <input-filename>.p<partition-number>.tsv with the parsed AIS.\nThis file will be suitable for uploading using SQL Loader." << endl;
 	cerr << "<number-of-entries-per-tsv> is the number of entries per file.\nIt will create mutliple files named <input-filename><file-number>.tsv.\nIf set to 0, it will push all to a single file." << endl;
 }
+
 
 //========================================================================================
 //========================================================================================
@@ -58,25 +60,26 @@ int main(int argc, char** argv)
 		cerr << "Setting messages per file to 0" << endl;
 		messagesPerFile = 0;
 	}
-	
+
 	//Define input class (an AisInputSource)
 	//STEPX: choose the correct type of input source
 	AisFlatFileInputSource aisInputSource(filename);
 	
 	unsigned int partition = 0;
+	AisKmlTrackWriter aisWriter(filename + ".p" + boost::lexical_cast<string>(partition++) + ".kml");
 
 	while(aisInputSource.isReady())
 	{
 
 		//Define output class (an AisWriter)
 		//STEPX: choose the correct type of output source
-		AisTsvWriter aisWriter(filename + ".p" + boost::lexical_cast<string>(partition++) + ".tsv");
+		//AisKmlTrackWriter aisWriter(filename + ".p" + boost::lexical_cast<string>(partition++) + ".tsv");
 
-		if(!aisWriter.isReady())
-		{
-			aisDebug("AisWriter is not ready");
-			return -1;
-		}
+		//if(!aisWriter.isReady())
+		//{
+		//	aisDebug("AisWriter is not ready");
+		//	return -1;
+		//}
 
 		for(unsigned int messageCount = 0; ((messagesPerFile == 0) || (messageCount < messagesPerFile)) && (aisInputSource.isReady()); messageCount++)
 		{
@@ -115,7 +118,7 @@ int main(int argc, char** argv)
 						aisMessage.setDATETIME(aisSentenceParser.getTimestamp());
 						//add streamid from ais sentence to the ais message
 						aisMessage.setSTREAMID(aisSentenceParser.getStreamId());
-
+						//aisWriter.writeEntry(aisMessage);
 						aisWriter.writeEntry(aisMessage);
 					}
 					catch(exception &e)
@@ -135,6 +138,8 @@ int main(int argc, char** argv)
 			}
 		}
 	}
+
+	aisWriter.writeToFile();
+
 	return 0;
 }
-
