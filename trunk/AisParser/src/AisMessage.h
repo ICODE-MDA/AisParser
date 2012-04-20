@@ -141,6 +141,49 @@ public:
 		AssociatedImageSensor="";
 		AssociatedImageResolution=-1;
 	}
+	
+	bool operator != (const AisMessage& lhs) const{
+		return !(operator==(lhs));
+	}
+
+	bool operator == (const AisMessage& lhs) const{
+
+		if(
+			this->BOW == lhs.getBOW() &&
+			this->CALLSIGN == lhs.getCALLSIGN() &&
+			this->COG == lhs.getCOG() &&
+			this->DATETIME == lhs.getDATETIME() &&
+			this->DESTINATION == lhs.getDESTINATION() &&
+			this->DRAUGHT == lhs.getDRAUGHT() &&
+			this->ETA == lhs.getETA() &&
+			this->IMO == lhs.getIMO() &&
+			this->LAT == lhs.getLAT() &&
+			this->LON == lhs.getLON() &&
+			this->MESSAGETYPE == lhs.getMESSAGETYPE() &&
+			this->MMSI == lhs.getMMSI() &&
+			this->NAVSTATUS == lhs.getNAVSTATUS() &&
+			this->PORT == lhs.getPORT() &&
+			this->POSACCURACY == lhs.getPOSACCURACY() &&
+			this->POSFIXTYPE == lhs.getPOSFIXTYPE() &&
+			this->ROT == lhs.getROT() &&
+			this->SHIPLENGTH == lhs.getSHIPLENGTH() &&
+			this->SHIPWIDTH == lhs.getSHIPWIDTH() &&
+			this->SOG == lhs.getSOG() &&
+			this->STARBOARD == lhs.getSTARBOARD() &&
+			this->STERN == lhs.getSTERN() &&
+			this->STREAMID == lhs.getSTREAMID() &&
+			this->TRUE_HEADING == lhs.getTRUE_HEADING() &&
+			this->VESSELNAME == lhs.getVESSELNAME() &&
+			this->VESSELTYPEINT == lhs.getVESSELTYPEINT()
+			)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
 
 	double getMMSI() const
 	{
@@ -248,10 +291,7 @@ public:
 	{
 		this->VESSELTYPEINT = vesseltypeint;
 	}
-	double getSHIPLENGtH() const
-	{
-		return getSHIPLENGTH();
-	}
+
 	void setSHIPLENGTH(double shiplength)
 	{
 		this->SHIPLENGTH = shiplength;
