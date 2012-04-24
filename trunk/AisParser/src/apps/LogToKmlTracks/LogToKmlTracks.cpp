@@ -49,16 +49,16 @@ int main(int argc, char** argv)
 	boost::timer::auto_cpu_timer timer;
 
 	string filename = argv[1];
-	unsigned int messagesPerFile = 0;
+	unsigned int tracksPerFile = 0;
 	try
 	{
-		messagesPerFile = boost::lexical_cast<unsigned int>(argv[2]);
+		tracksPerFile = boost::lexical_cast<unsigned int>(argv[2]);
 	}
 	catch(exception& e)
 	{
 		cerr << e.what() << endl;
 		cerr << "Setting messages per file to 0" << endl;
-		messagesPerFile = 0;
+		tracksPerFile = 0;
 	}
 
 	//Define input class (an AisInputSource)
@@ -66,7 +66,8 @@ int main(int argc, char** argv)
 	AisFlatFileInputSource aisInputSource(filename);
 	
 	unsigned int partition = 0;
-	AisKmlTrackWriter aisWriter(filename + ".p" + boost::lexical_cast<string>(partition++) + ".kml");
+	//AisKmlTrackWriter aisWriter(filename + ".p" + boost::lexical_cast<string>(partition++) + ".kml");
+	AisKmlTrackWriter aisWriter(filename, tracksPerFile);
 
 	while(aisInputSource.isReady())
 	{
@@ -81,7 +82,8 @@ int main(int argc, char** argv)
 		//	return -1;
 		//}
 
-		for(unsigned int messageCount = 0; ((messagesPerFile == 0) || (messageCount < messagesPerFile)) && (aisInputSource.isReady()); messageCount++)
+		//for(unsigned int messageCount = 0; ((messagesPerFile == 0) || (messageCount < messagesPerFile)) && (aisInputSource.isReady()); messageCount++)
+		while(aisInputSource.isReady())
 		{
 
 			//load the next sentence from the AIS input to the parser

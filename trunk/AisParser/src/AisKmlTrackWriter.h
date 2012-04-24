@@ -14,6 +14,8 @@
 //#include <AisCoordinate.h>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string.hpp>
 
 //<?xml version="1.0" encoding="UTF-8"?>
 //<kml xmlns="http://www.opengis.net/kml/2.2">
@@ -63,45 +65,6 @@
 //</kml>
 
 
-//class MessageCompare
-//{
-//	bool operator() (const AisMessage& lhs, const AisMessage& rhs) const
-//	{
-//		/*if( lhs.getMMSI() < rhs.getMMSI() )
-//		{
-//			return true;
-//		}
-//		else if(lhs.getMMSI() > rhs.getMMSI())
-//		{
-//			return false;
-//		}
-//		else*/ //MMSIs are equal
-//		//{
-//			return lhs.getDATETIME() < rhs.getDATETIME();
-//		//}
-//	}
-//};
-
-//class TrackCompare
-//{
-//	bool operator() (const AisTrack& lhs, const AisTrack& rhs) const
-//	{
-//		if( lhs.getMMSI() < rhs.getMMSI() )
-//		{
-//			return true;
-//		}
-//		else if(lhs.getMMSI() > rhs.getMMSI())
-//		{
-//			return false;
-//		}
-//		else //MMSIs are equal
-//		{
-//			return lhs.getDATETIME() < rhs.getDATETIME();
-//		}
-//	}
-//};
-
-
 class AisCoordinate
 {
 public:
@@ -148,7 +111,7 @@ public:
 
 	void addData(const AisMessage &message) 
 	{
-		if(message.getMESSAGETYPE() == 5)
+		if((message.getMESSAGETYPE() == 5) || (message.getMESSAGETYPE() == 24))
 		{
 			addStaticMessageInfo(message);
 		}
@@ -156,17 +119,6 @@ public:
 		{
 			m_aisCoords.push_back(AisCoordinate(message.getLAT(), message.getLON(), message.getDATETIME()));
 		}
-		
-		//if(message.getMESSAGETYPE() == 5)
-		//{
-		//	if(!hasStaticInformation)
-		//	{
-		//		m_message = message;
-		//		hasStaticInformation = true;
-		//	}
-		//}else{
-		//	m_aisCoords.push_back(AisCoordinate(message.getLAT(), message.getLON(), message.getDATETIME()));
-		//}
 	}
 	
 	static bool dateCompare(const AisCoordinate& lhs, const AisCoordinate& rhs)
@@ -182,78 +134,6 @@ public:
 	double getMMSI() const{
 		return m_mmsi;
 	}
-
-	//double getMMSI() const{
-	//	return m_message.getMMSI();
-	//}
-
-	//double getIMO() const{
-	//	return m_message.getIMO();
-	//}
-
-	//double getDATETIME() const{
-	//	return m_message.getDATETIME();
-	//}
-
-	//std::string getCALLSIGN() const{
-	//	return m_message.getCALLSIGN();
-	//}
-
-	//std::string getDESTINATION() const{
-	//	return m_message.getDESTINATION();
-	//}
-
-	//std::string getVESSELNAME() const{
-	//	return m_message.getVESSELNAME();
-	//}
-
-	//int getVESSELTYPEINT() const{
-	//	return m_message.getVESSELTYPEINT();
-	//}
-
-	//int getSHIPLENGTH() const{
-	//	return m_message.getSHIPLENGTH();
-	//}
-
-	//int getSHIPWIDTH() const{
-	//	return m_message.getSHIPWIDTH();
-	//}
-
-	//int getBOW() const{
-	//	return m_message.getBOW();
-	//}
-
-	//int getSTERN() const{
-	//	return m_message.getSTERN();
-	//}
-
-	//int getPORT() const{
-	//	return m_message.getPORT();
-	//}
-
-	//double getSTARBOARD() const{
-	//	return m_message.getSTARBOARD();
-	//}
-
-	//double getDRAUGHT() const{
-	//	return m_message.getDRAUGHT();
-	//}
-
-	//double getETA() const{
-	//	return m_message.getETA();
-	//}	
-	//
-	//double getPOSFIXTYPE() const{
-	//	return m_message.getPOSFIXTYPE();
-	//}
-
-	//std::string getSTREAMID() const{
-	//	return m_message.getSTREAMID();
-	//}
-
-	//int getMESSAGETYPE() const{
-	//	return m_message.getMESSAGETYPE();
-	//}
 
 	double getLAT() const
 	{
@@ -312,9 +192,6 @@ public:
 	std::vector<AisMessage> m_messages;
 private:
 	double m_mmsi;
-	//bool hasStaticInformation;
-	//AisMessage m_message;
-	//std::vector<AisMessage> m_messages;
 	std::vector<AisCoordinate> m_aisCoords;
 };
 
@@ -342,7 +219,7 @@ public:
 			//check if the points have a lat/lon and if they're within 1 (magic number) manhattan degree of eachother
 			if(t->getLAT() != -999 && m.getLAT() != -999 )//&& t->getLON() != -999 && m.getLON() != -999
 			{
-				if( ((t->getLAT() - m.getLAT())*(t->getLAT() - m.getLAT()) + (t->getLON() - m.getLON())* (t->getLON() - m.getLON())) > 1)
+				if( ((t->getLAT() - m.getLAT())*(t->getLAT() - m.getLAT()) + (t->getLON() - m.getLON())* (t->getLON() - m.getLON())) > 25)
 				{
 					return false;
 				}
@@ -370,90 +247,135 @@ public:
 		return false;
 	}
 
-	void removeBrackets(std::string &input)
+	void replaceBracketsAndAmpersands(std::string &input)
 	{
-		boost::algorithm::erase_all(input, "<");
-		boost::algorithm::erase_all(input, ">");
+		boost::algorithm::replace_all(input, "<", "&lt;");
+		boost::algorithm::replace_all(input, ">", "&gt;");
+		boost::algorithm::replace_all(input, "&", "&amp;");
+	}
+
+	//requires: trackIdx<aisTracks.size()
+	void writeTrack(std::ofstream &of, unsigned int trackIdx)
+	{
+		string vesselNames;
+		for(int staticMessageIdx = 0; staticMessageIdx < aisTracks[trackIdx].m_messages.size(); staticMessageIdx++)
+		{
+			vesselNames += aisTracks[trackIdx].m_messages[staticMessageIdx].getVESSELNAME() + " - ";
+		}
+
+		replaceBracketsAndAmpersands(vesselNames);
+		of << "<Placemark>" << endl;
+		of << "	<name>" << vesselNames << "</name>" << endl;
+		//of << "	<description>" << aisTracks[trackIdx].getCALLSIGN() << aisTracks[trackIdx].getDESTINATION() << aisTracks[trackIdx].getVESSELNAME() << "</description>" << endl;
+		of << "		<description>" << endl;
+		of << "		<![CDATA[" << endl;
+		of << "			MMSI:" << aisTracks[trackIdx].getMMSI() << "<br>" << endl;
+		for(int staticMessageIdx = 0; staticMessageIdx < aisTracks[trackIdx].m_messages.size(); staticMessageIdx++)
+		{
+			//of << "			Message Type:" << aisTracks[trackIdx].getMESSAGETYPE() << "<br>" << endl;
+			//of << "			Navigation Status:" << aisTracks[trackIdx].getNAVSTATUS() << "<br>" << endl;
+			//of << "			ROT:" << aisTracks[trackIdx].getROT() << "<br>" << endl;
+			//of << "			SOG:" << aisTracks[trackIdx].getSOG() << "<br>" << endl;
+			//of << "			LON:" << aisTracks[trackIdx].getLON() << "<br>" << endl;
+			//of << "			LAT:" << aisTracks[trackIdx].getLAT() << "<br>" << endl;
+			//of << "			COG:" << aisTracks[trackIdx].getCOG() << "<br>" << endl;
+			//of << "			True Heading:" << message.getTRUE_HEADING() << "<br>" << endl;
+			//of << "			Date Time:" << message.getDATETIME() << "<br>" << endl;
+			of << "			IMO:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getIMO() << "<br>" << endl;
+			of << "			Vessel Name:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getVESSELNAME() << "<br>" << endl;
+			of << "			Vessel Type Int:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getVESSELTYPEINT() << "<br>" << endl;
+			of << "			Ship Length:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getSHIPLENGTH() << "<br>" << endl;
+			of << "			Ship Width:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getSHIPWIDTH() << "<br>" << endl;
+			of << "			BOW:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getBOW() << "<br>" << endl;
+			of << "			STERN:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getSTERN() << "<br>" << endl;
+			of << "			PORT:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getPORT() << "<br>" << endl;
+			of << "			STARBOARD:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getSTARBOARD() << "<br>" << endl;
+			of << "			DRAUGHT:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getDRAUGHT() << "<br>" << endl;
+			of << "			Destination:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getDESTINATION() << "<br>" << endl;
+			of << "			Callsign:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getCALLSIGN() << "<br>" << endl;
+			//of << "			Position Accuracy:" << message.getPOSACCURACY() << "<br>" << endl;
+			of << "			ETA:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getETA() << "<br>" << endl;
+			of << "			Position Fix Type:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getPOSFIXTYPE() << "<br>" << endl;
+			of << "			StreamID:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getSTREAMID() << "<br>" << endl;
+			of << "			-------------------<br>" << endl;
+		}
+		of << "		]]>" << endl;
+		of << "		</description>" << endl;
+		of << "	<styleUrl>#yellowLineGreenPoly</styleUrl>" << endl;
+		of << "	<LineString>" << endl;
+		of << "		<extrude>0</extrude>" << endl;
+		of << "		<tessellate>1</tessellate>" << endl;
+		of << "		<altitudeMode>clampToGround</altitudeMode>" << endl;
+		of << "		<coordinates>" << endl;
+		aisTracks[trackIdx].sortByDateTime();
+		for(int coordIdx = 0; coordIdx < aisTracks[trackIdx].size(); coordIdx++)
+		{
+			of << setprecision(10) << "			" << aisTracks[trackIdx][coordIdx].m_lon << "," << aisTracks[trackIdx][coordIdx].m_lat << ",0" << endl;
+		}
+		of << "		</coordinates>" << endl;
+		of << "	</LineString>" << endl;
+		of << "</Placemark>" << endl;
+
+		//write first and last with a pin
+		if(aisTracks[trackIdx].size() > 0)
+		{
+			of << "<Placemark>" << endl;
+			of << "	<description>" << endl;
+			of << "		MMSI:" << aisTracks[trackIdx].getMMSI() << endl;
+			of << setprecision(10) << "		Timestamp:" << aisTracks[trackIdx][0].m_timestamp << endl;
+			of << "	</description>" << endl;
+			of << " <Point>" << endl;
+			of << "		<coordinates>" << endl;
+			of << setprecision(10) << "			" << aisTracks[trackIdx][0].m_lon << "," << aisTracks[trackIdx][0].m_lat << ",0" << endl;
+			of << "		</coordinates>" << endl;
+			of << "	</Point>" << endl;
+			of << "</Placemark>" << endl;
+		}
+
+		if(aisTracks[trackIdx].size() > 1)
+		{
+			unsigned int lastIdx = aisTracks[trackIdx].size()-1;
+			of << "<Placemark>" << endl;
+			of << "	<description>" << endl;
+			of << "		MMSI:" << aisTracks[trackIdx].getMMSI() << endl;
+			of << setprecision(10) << "		Timestamp:" << aisTracks[trackIdx][lastIdx].m_timestamp << endl;
+			of << "	</description>" << endl;
+			of << " <Point>" << endl;
+			of << "		<coordinates>" << endl;
+			of << setprecision(10) << "			" << aisTracks[trackIdx][lastIdx ].m_lon << "," << aisTracks[trackIdx][lastIdx ].m_lat << ",0" << endl;
+			of << "		</coordinates>" << endl;
+			of << "	</Point>" << endl;
+			of << "</Placemark>" << endl;
+		}
+
+		//for(int coordIdx = 0; coordIdx < aisTracks[trackIdx].size(); coordIdx++)
+		//{
+		//	of << "<Placemark>" << endl;
+		//	of << "	<description>" << endl;
+		//	of << "		MMSI:" << aisTracks[trackIdx].getMMSI() << endl;
+		//	of << setprecision(10) << "		Timestamp:" << aisTracks[trackIdx][coordIdx].m_timestamp << endl;
+		//	of << "	</description>" << endl;
+		//	of << " <Point>" << endl;
+		//	of << "		<coordinates>" << endl;
+		//	of << setprecision(10) << "			" << aisTracks[trackIdx][coordIdx].m_lon << "," << aisTracks[trackIdx][coordIdx].m_lat << ",0" << endl;
+		//	of << "		</coordinates>" << endl;
+		//	of << "	</Point>" << endl;
+		//	of << "</Placemark>" << endl;
+		//}
 	}
 
 	void writeData(std::ofstream &of)
 	{
 		for(int trackIdx = 0; trackIdx<aisTracks.size(); trackIdx++)
 		{
-			string vesselNames;
-			for(int staticMessageIdx = 0; staticMessageIdx < aisTracks[trackIdx].m_messages.size(); staticMessageIdx++)
-			{
-				vesselNames += aisTracks[trackIdx].m_messages[staticMessageIdx].getVESSELNAME() + " - ";
-			}
-			//string vesselName = aisTracks[trackIdx].getVESSELNAME();
-			removeBrackets(vesselNames);
-			of << "<Placemark>" << endl;
-			of << "	<name>" << vesselNames << "</name>" << endl;
-			//of << "	<description>" << aisTracks[trackIdx].getCALLSIGN() << aisTracks[trackIdx].getDESTINATION() << aisTracks[trackIdx].getVESSELNAME() << "</description>" << endl;
-			of << "		<description>" << endl;
-			of << "		<![CDATA[" << endl;
-			of << "			MMSI:" << aisTracks[trackIdx].getMMSI() << "<br>" << endl;
-			for(int staticMessageIdx = 0; staticMessageIdx < aisTracks[trackIdx].m_messages.size(); staticMessageIdx++)
-			{
-				//of << "			Message Type:" << aisTracks[trackIdx].getMESSAGETYPE() << "<br>" << endl;
-				//of << "			Navigation Status:" << aisTracks[trackIdx].getNAVSTATUS() << "<br>" << endl;
-				//of << "			ROT:" << aisTracks[trackIdx].getROT() << "<br>" << endl;
-				//of << "			SOG:" << aisTracks[trackIdx].getSOG() << "<br>" << endl;
-				//of << "			LON:" << aisTracks[trackIdx].getLON() << "<br>" << endl;
-				//of << "			LAT:" << aisTracks[trackIdx].getLAT() << "<br>" << endl;
-				//of << "			COG:" << aisTracks[trackIdx].getCOG() << "<br>" << endl;
-				//of << "			True Heading:" << message.getTRUE_HEADING() << "<br>" << endl;
-				//of << "			Date Time:" << message.getDATETIME() << "<br>" << endl;
-				of << "			IMO:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getIMO() << "<br>" << endl;
-				of << "			Vessel Name:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getVESSELNAME() << "<br>" << endl;
-				of << "			Vessel Type Int:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getVESSELTYPEINT() << "<br>" << endl;
-				of << "			Ship Length:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getSHIPLENGTH() << "<br>" << endl;
-				of << "			Ship Width:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getSHIPWIDTH() << "<br>" << endl;
-				of << "			BOW:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getBOW() << "<br>" << endl;
-				of << "			STERN:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getSTERN() << "<br>" << endl;
-				of << "			PORT:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getPORT() << "<br>" << endl;
-				of << "			STARBOARD:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getSTARBOARD() << "<br>" << endl;
-				of << "			DRAUGHT:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getDRAUGHT() << "<br>" << endl;
-				of << "			Destination:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getDESTINATION() << "<br>" << endl;
-				of << "			Callsign:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getCALLSIGN() << "<br>" << endl;
-				//of << "			Position Accuracy:" << message.getPOSACCURACY() << "<br>" << endl;
-				of << "			ETA:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getETA() << "<br>" << endl;
-				of << "			Position Fix Type:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getPOSFIXTYPE() << "<br>" << endl;
-				of << "			StreamID:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getSTREAMID() << "<br>" << endl;
-				of << "			------" << endl;
-			}
-			of << "		]]>" << endl;
-			of << "		</description>" << endl;
-			of << "	<styleUrl>#yellowLineGreenPoly</styleUrl>" << endl;
-			of << "	<LineString>" << endl;
-			of << "		<extrude>0</extrude>" << endl;
-			of << "		<tessellate>1</tessellate>" << endl;
-			of << "		<altitudeMode>clampToGround</altitudeMode>" << endl;
-			of << "		<coordinates>" << endl;
-			aisTracks[trackIdx].sortByDateTime();
-			for(int coordIdx = 0; coordIdx < aisTracks[trackIdx].size(); coordIdx++)
-			{
-				of << setprecision(10) << "			" << aisTracks[trackIdx][coordIdx].m_lon << "," << aisTracks[trackIdx][coordIdx].m_lat << ",0" << endl;
-			}
-			of << "		</coordinates>" << endl;
-			of << "	</LineString>" << endl;
-			of << "</Placemark>" << endl;
-			for(int coordIdx = 0; coordIdx < aisTracks[trackIdx].size(); coordIdx++)
-			{
-				of << "<Placemark>" << endl;
-				of << "	<description>" << endl;
-				of << setprecision(10) << "Timestamp:" << aisTracks[trackIdx][coordIdx].m_timestamp << endl;
-				of << "	</description>" << endl;
-				of << " <Point>" << endl;
-				of << "		<coordinates>" << endl;
-				of << setprecision(10) << "			" << aisTracks[trackIdx][coordIdx].m_lon << "," << aisTracks[trackIdx][coordIdx].m_lat << ",0" << endl;
-				of << "		</coordinates>" << endl;
-				of << "	</Point>" << endl;
-				of << "</Placemark>" << endl;
-			}
+			writeTrack(of, trackIdx);
 		}
 	}
 
+	unsigned int size()
+	{
+		return aisTracks.size();
+	}
 
 private:
 	std::vector<AisTrack> aisTracks;
@@ -462,19 +384,31 @@ private:
 class AisKmlTrackWriter : public AisWriter{
 public:
 	AisKmlTrackWriter(std::string filename){
-		of.open(filename, std::ios::out);
+		m_tracksPerFile = 0;
+		m_currentPartition = 0;
+		m_filename = filename;
 	}
 
+	AisKmlTrackWriter(std::string filename, unsigned int tracksPerFile){
+		m_filename = filename;
+		m_tracksPerFile = tracksPerFile;
+		m_currentPartition = 0;
+	}
 	~AisKmlTrackWriter(){
+		closeFile();
+	}
+	
+	void closeFile()
+	{
 		if(of.is_open()){
 			of << "</Document>" << endl;
 			of << "</kml>" << endl;
 			of.close();
 		}
 	}
-	
+
 	bool isReady(){
-		return of.is_open();
+		return (m_filename != "") && (m_tracksPerFile >= 0);
 	}
 
 	bool writeEntry(const AisMessage& message)
@@ -484,26 +418,45 @@ public:
 	}
 
 	void writeToFile(){
-		if(of.is_open())
+		unsigned int currentTrack = 0;
+		while(currentTrack < m_trackSet.size())
 		{
-			of << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
-			of << "<kml xmlns=\"http://www.opengis.net/kml/2.2\">" << endl;
-			of << "<Document>" << endl;
-			of << "<Style id=\"yellowLineGreenPoly\">" << endl;
-			of << "	<LineStyle>" << endl;
-			of << "		<color>7f00ffff</color>" << endl;
-			of << "		<width>4</width>" << endl;
-			of << "	</LineStyle>" << endl;
-			of << "	<PolyStyle>" << endl;
-			of << "		<color>7f00ff00</color>" << endl;
-			of << "	</PolyStyle>" << endl;
-			of << "</Style>" << endl;
+			std::string currentFilename = m_filename + ".p" + boost::lexical_cast<string>(m_currentPartition++) + ".kml";
+			aisDebug("Writing to file: " << currentFilename );
+			of.open(currentFilename, std::ios::out);
+		
+			if(of.is_open())
+			{
+				of << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
+				of << "<kml xmlns=\"http://www.opengis.net/kml/2.2\">" << endl;
+				of << "<Document>" << endl;
+				of << "<Style id=\"yellowLineGreenPoly\">" << endl;
+				of << "	<LineStyle>" << endl;
+				of << "		<color>7f00ffff</color>" << endl;
+				of << "		<width>4</width>" << endl;
+				of << "	</LineStyle>" << endl;
+				of << "	<PolyStyle>" << endl;
+				of << "		<color>7f00ff00</color>" << endl;
+				of << "	</PolyStyle>" << endl;
+				of << "</Style>" << endl;
+			}
+			else
+			{
+				aisDebug("kml file writer not ready");
+			}
+
+			for(unsigned int trackCount = 0; ((m_tracksPerFile == 0) || (trackCount < m_tracksPerFile)) && (currentTrack < m_trackSet.size()); trackCount++){
+				m_trackSet.writeTrack(of, currentTrack++);
+			}
+			closeFile();
 		}
-		m_trackSet.writeData(of);
 	}
 
 private:
 	std::ofstream of;
+	std::string m_filename;
+	unsigned int m_tracksPerFile;
+	unsigned int m_currentPartition;
 	AisTrackSet m_trackSet;
 };
 
