@@ -100,12 +100,13 @@ public:
 	{
 		for(int i=0; i<m_messages.size(); i++)
 		{
-			if( m == m_messages[i]){
+			if(m.equalWithExceptionOfTime(m_messages[i]))
+			{
 				return;
 			}
 		}
 
-		//if it gets here it was not found, so add it
+		//if it gets here it was not found in current track, so add it
 		m_messages.push_back(m);
 	}
 
@@ -169,26 +170,6 @@ public:
 		return m_aisCoords.size();
 	}
 
-	
-	//void writeToFile(std::ofstream &of){
-	//	of << "<Placemark>" << endl;
-	//	of << "	<name>Absolute Extruded</name>" << endl;
-	//	of << "	<description>" << m_message.getCALLSIGN() << m_message.getDESTINATION() << m_message.getVESSELNAME() << "</description>" << endl;
-	//	of << "	<styleUrl>#yellowLineGreenPoly</styleUrl>" << endl;
-	//	of << "	<LineString>" << endl;
-	//	of << "		<extrude>0</extrude>" << endl;
-	//	of << "		<tessellate>1</tessellate>" << endl;
-	//	of << "		<altitudeMode>clampToGround</altitudeMode>" << endl;
-	//	of << "		<coordinates>" << endl;
-	//	for(int i = 0; i < m_aisCoords.size(); i++)
-	//	{
-	//		of << setprecision(10) << "			" << m_aisCoords[i].m_lon << "," << m_aisCoords[i].m_lat << ",0" << endl;
-	//	}
-	//	of << "		</coordinates>" << endl;
-	//	of << "	</LineString>" << endl;
-	//	of << "</Placemark>" << endl;
-	//}
-
 	std::vector<AisMessage> m_messages;
 private:
 	double m_mmsi;
@@ -211,15 +192,47 @@ public:
 		}
 	}
 
+	//assumes a height of 0
+	//returns in units of meters squared
+	//uses wgs84
+	double distanceSquaredBetweenPoints(double lat1, double lon1, double lat2, double lon2)
+	{
+		//http://en.wikipedia.org/wiki/Geodetic_system WGS84
+		double theEccentricitySquared = .00669437999014;
+		double theA = 6378137.0;// meters
+		double radiansPerDegree = 3.141592653589793238462643/180;
+
+		double sin_latitude1 = std::sin(lat1*radiansPerDegree);
+		double cos_latitude1 = std::cos(lat1*radiansPerDegree);
+		double N1 = theA / sqrt( 1.0 - theEccentricitySquared*sin_latitude1*sin_latitude1);
+		double x1 = (N1)*cos_latitude1*std::cos(lon1*radiansPerDegree);
+		double y1 = (N1)*cos_latitude1*std::sin(lon1*radiansPerDegree);
+		double z1 = (N1*(1-theEccentricitySquared))*sin_latitude1;
+
+
+		double sin_latitude2 = std::sin(lat2*radiansPerDegree);
+		double cos_latitude2 = std::cos(lat2*radiansPerDegree);
+		double N = theA / sqrt( 1.0 - theEccentricitySquared*sin_latitude2*sin_latitude2);
+		double x2 = (N)*cos_latitude2*std::cos(lon2*radiansPerDegree);
+		double y2 = (N)*cos_latitude2*std::sin(lon2*radiansPerDegree);
+		double z2 = (N*(1-theEccentricitySquared))*sin_latitude2;
+
+		double magSquared = (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2) + (z1-z2)*(z1-z2);
+		return magSquared;
+	}
 
 	bool messageBelongsToCurrentTrack(const AisMessage& m, std::vector<AisTrack>::iterator t)
 	{
 		if(m.getMMSI() == t->getMMSI())
 		{
-			//check if the points have a lat/lon and if they're within 1 (magic number) manhattan degree of eachother
 			if(t->getLAT() != -999 && m.getLAT() != -999 )//&& t->getLON() != -999 && m.getLON() != -999
 			{
-				if( ((t->getLAT() - m.getLAT())*(t->getLAT() - m.getLAT()) + (t->getLON() - m.getLON())* (t->getLON() - m.getLON())) > 25)
+				//check if distance from the last point added to the track is small. This would imply they come from the same track
+				//If the distance is far away, this means it doesn't come from the same track.
+				//TODO: The points in the track aren't necessarily given by timestamp (there may be points in the track that are close enough,
+				//to think that it is the same track, but the one that we check tells it to start a new track because it is too far away.
+				double magSquared = distanceSquaredBetweenPoints(t->getLAT(), t->getLON(), m.getLAT(), m.getLON());
+				if(magSquared > 1000000000000) //if distance^2 between points is > (1000km)^2 == if distance > 1000 km
 				{
 					return false;
 				}
@@ -257,6 +270,11 @@ public:
 	//requires: trackIdx<aisTracks.size()
 	void writeTrack(std::ofstream &of, unsigned int trackIdx)
 	{
+		if(trackIdx >= aisTracks.size()){
+			aisDebug("AisTrackSet::writeTrack the trackIdx exceeds the maximum index of aisTrackSet");
+			return;
+		}
+
 		string vesselNames;
 		for(int staticMessageIdx = 0; staticMessageIdx < aisTracks[trackIdx].m_messages.size(); staticMessageIdx++)
 		{
@@ -266,21 +284,20 @@ public:
 		replaceBracketsAndAmpersands(vesselNames);
 		of << "<Placemark>" << endl;
 		of << "	<name>" << vesselNames << "</name>" << endl;
-		//of << "	<description>" << aisTracks[trackIdx].getCALLSIGN() << aisTracks[trackIdx].getDESTINATION() << aisTracks[trackIdx].getVESSELNAME() << "</description>" << endl;
 		of << "		<description>" << endl;
 		of << "		<![CDATA[" << endl;
-		of << "			MMSI:" << aisTracks[trackIdx].getMMSI() << "<br>" << endl;
+		of << setprecision(10) << "			MMSI:" << aisTracks[trackIdx].getMMSI() << "<br>" << endl;
 		for(int staticMessageIdx = 0; staticMessageIdx < aisTracks[trackIdx].m_messages.size(); staticMessageIdx++)
 		{
-			//of << "			Message Type:" << aisTracks[trackIdx].getMESSAGETYPE() << "<br>" << endl;
-			//of << "			Navigation Status:" << aisTracks[trackIdx].getNAVSTATUS() << "<br>" << endl;
-			//of << "			ROT:" << aisTracks[trackIdx].getROT() << "<br>" << endl;
-			//of << "			SOG:" << aisTracks[trackIdx].getSOG() << "<br>" << endl;
-			//of << "			LON:" << aisTracks[trackIdx].getLON() << "<br>" << endl;
-			//of << "			LAT:" << aisTracks[trackIdx].getLAT() << "<br>" << endl;
-			//of << "			COG:" << aisTracks[trackIdx].getCOG() << "<br>" << endl;
-			//of << "			True Heading:" << message.getTRUE_HEADING() << "<br>" << endl;
-			//of << "			Date Time:" << message.getDATETIME() << "<br>" << endl;
+			of << "			Message Type:" << aisTracks[trackIdx].m_messages[staticMessageIdx].getMESSAGETYPE() << "<br>" << endl;
+			of << "			Navigation Status:" << aisTracks[trackIdx].m_messages[staticMessageIdx].getNAVSTATUS() << "<br>" << endl;
+			//of << "			ROT:" << aisTracks[trackIdx].m_messages[staticMessageIdx].getROT() << "<br>" << endl;
+			//of << "			SOG:" << aisTracks[trackIdx].m_messages[staticMessageIdx].getSOG() << "<br>" << endl;
+			//of << "			LON:" << aisTracks[trackIdx].m_messages[staticMessageIdx].getLON() << "<br>" << endl;
+			//of << "			LAT:" << aisTracks[trackIdx].m_messages[staticMessageIdx].getLAT() << "<br>" << endl;
+			//of << "			COG:" << aisTracks[trackIdx].m_messages[staticMessageIdx].getCOG() << "<br>" << endl;
+			//of << "			True Heading:" << aisTracks[trackIdx].m_messages[staticMessageIdx].getTRUE_HEADING() << "<br>" << endl;
+			of << "			Date Time:" << aisTracks[trackIdx].m_messages[staticMessageIdx].getDATETIME() << "<br>" << endl;
 			of << "			IMO:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getIMO() << "<br>" << endl;
 			of << "			Vessel Name:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getVESSELNAME() << "<br>" << endl;
 			of << "			Vessel Type Int:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getVESSELTYPEINT() << "<br>" << endl;
@@ -293,7 +310,7 @@ public:
 			of << "			DRAUGHT:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getDRAUGHT() << "<br>" << endl;
 			of << "			Destination:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getDESTINATION() << "<br>" << endl;
 			of << "			Callsign:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getCALLSIGN() << "<br>" << endl;
-			//of << "			Position Accuracy:" << message.getPOSACCURACY() << "<br>" << endl;
+			of << "			Position Accuracy:" << aisTracks[trackIdx].m_messages[staticMessageIdx].getPOSACCURACY() << "<br>" << endl;
 			of << "			ETA:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getETA() << "<br>" << endl;
 			of << "			Position Fix Type:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getPOSFIXTYPE() << "<br>" << endl;
 			of << "			StreamID:" <<  aisTracks[trackIdx].m_messages[staticMessageIdx].getSTREAMID() << "<br>" << endl;
@@ -316,7 +333,7 @@ public:
 		of << "	</LineString>" << endl;
 		of << "</Placemark>" << endl;
 
-		//write first and last with a pin
+		//write first with a pin
 		if(aisTracks[trackIdx].size() > 0)
 		{
 			of << "<Placemark>" << endl;
@@ -332,6 +349,7 @@ public:
 			of << "</Placemark>" << endl;
 		}
 
+		//write last with a pin
 		if(aisTracks[trackIdx].size() > 1)
 		{
 			unsigned int lastIdx = aisTracks[trackIdx].size()-1;

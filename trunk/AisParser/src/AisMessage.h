@@ -149,10 +149,24 @@ public:
 	bool operator == (const AisMessage& lhs) const{
 
 		if(
+			equalWithExceptionOfTime(lhs) &&
+			this->DATETIME == lhs.getDATETIME() 
+			)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
+	}
+
+	bool equalWithExceptionOfTime (const AisMessage& lhs) const{
+
+		if(
 			this->BOW == lhs.getBOW() &&
 			this->CALLSIGN == lhs.getCALLSIGN() &&
 			this->COG == lhs.getCOG() &&
-			this->DATETIME == lhs.getDATETIME() &&
 			this->DESTINATION == lhs.getDESTINATION() &&
 			this->DRAUGHT == lhs.getDRAUGHT() &&
 			this->ETA == lhs.getETA() &&
