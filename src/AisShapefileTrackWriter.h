@@ -61,14 +61,6 @@ public:
 			return;
 		}
 
-		//string vesselNames;
-		//for(int staticMessageIdx = 0; staticMessageIdx < m_trackSet[trackIdx].m_messages.size(); staticMessageIdx++)
-		//{
-		//	vesselNames += m_trackSet[trackIdx].m_messages[staticMessageIdx].getVESSELNAME() + " - ";
-		//}
-
-		//replaceBracketsAndAmpersands(vesselNames);
-		//of << "	<name>" << vesselNames << "</name>" << endl;
 		AisMessage temp;
 		if(m_trackSet[trackIdx].m_messages.size() == 0)
 		{
@@ -86,25 +78,6 @@ public:
 				temp.setCALLSIGN( temp.getCALLSIGN() + " - " +  m_trackSet[trackIdx].m_messages[staticMessageIdx].getCALLSIGN());
 				temp.setDESTINATION( temp.getDESTINATION() + " - " +  m_trackSet[trackIdx].m_messages[staticMessageIdx].getDESTINATION());
 				temp.setSTREAMID( temp.getSTREAMID() + " - " +  m_trackSet[trackIdx].m_messages[staticMessageIdx].getSTREAMID());
-				
-				//DBFWriteIntegerAttribute(dbfHandle, currentShape, 0, m_trackSet[trackIdx].m_messages[staticMessageIdx].getMESSAGETYPE());
-				//DBFWriteIntegerAttribute(dbfHandle, currentShape, 1, m_trackSet[trackIdx].m_messages[staticMessageIdx].getMMSI());
-				//DBFWriteDoubleAttribute(dbfHandle, currentShape, 10, m_trackSet[trackIdx].m_messages[staticMessageIdx].getIMO());
-				//DBFWriteStringAttribute(dbfHandle, currentShape, 11, m_trackSet[trackIdx].m_messages[staticMessageIdx].getVESSELNAME().c_str());
-				//DBFWriteIntegerAttribute(dbfHandle, currentShape, 12, m_trackSet[trackIdx].m_messages[staticMessageIdx].getVESSELTYPEINT());
-				//DBFWriteDoubleAttribute(dbfHandle, currentShape, 13, m_trackSet[trackIdx].m_messages[staticMessageIdx].getSHIPLENGTH());
-				//DBFWriteDoubleAttribute(dbfHandle, currentShape, 14, m_trackSet[trackIdx].m_messages[staticMessageIdx].getSHIPWIDTH());
-				//DBFWriteDoubleAttribute(dbfHandle, currentShape, 15, m_trackSet[trackIdx].m_messages[staticMessageIdx].getBOW());
-				//DBFWriteDoubleAttribute(dbfHandle, currentShape, 16, m_trackSet[trackIdx].m_messages[staticMessageIdx].getSTERN());
-				//DBFWriteDoubleAttribute(dbfHandle, currentShape, 17, m_trackSet[trackIdx].m_messages[staticMessageIdx].getPORT());
-				//DBFWriteDoubleAttribute(dbfHandle, currentShape, 18, m_trackSet[trackIdx].m_messages[staticMessageIdx].getSTARBOARD());
-				//DBFWriteDoubleAttribute(dbfHandle, currentShape, 19, m_trackSet[trackIdx].m_messages[staticMessageIdx].getDRAUGHT());
-				//DBFWriteStringAttribute(dbfHandle, currentShape, 20, m_trackSet[trackIdx].m_messages[staticMessageIdx].getDESTINATION().c_str());
-				//DBFWriteStringAttribute(dbfHandle, currentShape, 21, m_trackSet[trackIdx].m_messages[staticMessageIdx].getCALLSIGN().c_str());
-				//DBFWriteDoubleAttribute(dbfHandle, currentShape, 22, m_trackSet[trackIdx].m_messages[staticMessageIdx].getPOSACCURACY());
-				//DBFWriteDoubleAttribute(dbfHandle, currentShape, 23, m_trackSet[trackIdx].m_messages[staticMessageIdx].getETA());
-				//DBFWriteDoubleAttribute(dbfHandle, currentShape, 24, m_trackSet[trackIdx].m_messages[staticMessageIdx].getPOSFIXTYPE());
-				//DBFWriteStringAttribute(dbfHandle, currentShape++, 25, m_trackSet[trackIdx].m_messages[staticMessageIdx].getSTREAMID().c_str());
 			}
 		}
 		
@@ -146,7 +119,6 @@ public:
 			latitude.push_back(m_trackSet[trackIdx][coordIdx].m_lat);
 		}
 		
-		//SHPObject* shpObject = SHPCreateObject( SHPT_ARC, 0, 0, NULL, NULL, m_trackSet[trackIdx].size(), longitude.data(), latitude.data(), NULL, NULL);
 		SHPObject* shpObject = SHPCreateSimpleObject( SHPT_ARC, m_trackSet[trackIdx].size(), longitude.data(), latitude.data(), NULL);
 		SHPWriteObject(shpHandle, -1 , shpObject);
 		SHPDestroyObject(shpObject);
