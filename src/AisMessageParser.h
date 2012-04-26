@@ -285,8 +285,8 @@ private:
 		case 9:		//Standard SAR Aircraft Position Report
 			AISPosit.setMESSAGETYPE( bin2dec(AISBool, 0, 5));
 			AISPosit.setMMSI(bin2dec(AISBool, 8, 37));
-			AISPosit.setLON(bin2dec(AISBool, 61, 88));
-			AISPosit.setLAT(bin2dec(AISBool, 89, 115));
+			AISPosit.setLON(bin2dec(AISBool, 61, 88, true)/600000.0);
+			AISPosit.setLAT(bin2dec(AISBool, 89, 115, true)/600000.0);
 			AISPosit.setCOG(bin2dec(AISBool, 116, 127));
 			break;
 		case 10:		// UTC and Date Inquiry
@@ -436,10 +436,32 @@ private:
 			aisDebug( "The message type was not recognized and therefore could not be decoded. MessageType=" << MessageType );
 		}
 
+		if(AISPosit.getLON()!=-999)
+		{
+			wrapLonTo180(AISPosit);
+		}
+
 		return 0;
 	}
 
-
+	void wrapLonTo180(AisMessage& m)
+	{
+		if ( m.getLON() > 180.0 )
+		{
+			do
+			{
+				m.setLON(m.getLON() - 360.0);
+			} while ( m.getLON() > 180.0 );
+		}
+		else if ( m.getLON() < -180.0  )
+		{
+			do
+			{
+				m.setLON(m.getLON() + 360.0);
+			} while ( m.getLON() < -180.0 );
+		}
+		return;
+	}
 	std::string bin2SixBitAISAscii(vector<bool> & AISBool, int StartInd, int EndInd)
 	{
 		// Determine How many 6 bit Ascii characters we have.
