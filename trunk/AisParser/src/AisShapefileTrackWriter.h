@@ -76,6 +76,9 @@ public:
 		}
 		else
 		{
+			//for ships with multiple static messages that are different from eachother,
+			//we will add the string data of all of the different static messages.
+			//TODO: in the future we should probably add IMO and other numeric info
 			 temp = m_trackSet[trackIdx].m_messages[0];
 			for(int staticMessageIdx = 1; staticMessageIdx < m_trackSet[trackIdx].m_messages.size(); staticMessageIdx++)
 			{
