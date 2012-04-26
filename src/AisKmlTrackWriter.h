@@ -13,6 +13,7 @@
 #include <AisTrack.h>
 #include <AisCoordinate.h>
 #include <AisTrackSet.h>
+#include <AisTrackWriter.h>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/lexical_cast.hpp>
@@ -66,23 +67,21 @@
 //</kml>
 
 
-class AisKmlTrackWriter : public AisWriter{
+class AisKmlTrackWriter : public AisTrackWriter{
 public:
-	AisKmlTrackWriter(std::string filename){
-		m_tracksPerFile = 0;
-		m_currentPartition = 0;
-		m_filename = filename;
+	AisKmlTrackWriter(std::string filename):
+		AisTrackWriter(filename),
+		of()
+	{
+		
 	}
 
-	AisKmlTrackWriter(std::string filename, unsigned int tracksPerFile){
-		m_filename = filename;
-		m_tracksPerFile = tracksPerFile;
-		m_currentPartition = 0;
+	AisKmlTrackWriter(std::string filename, unsigned int tracksPerFile):
+		AisTrackWriter(filename, tracksPerFile),
+		of()
+	{	
 	}
-	~AisKmlTrackWriter(){
-		closeFile();
-	}
-	
+
 	void closeFile()
 	{
 		if(of.is_open()){
@@ -90,16 +89,6 @@ public:
 			of << "</kml>" << endl;
 			of.close();
 		}
-	}
-
-	bool isReady(){
-		return (m_filename != "") && (m_tracksPerFile >= 0);
-	}
-
-	bool writeEntry(const AisMessage& message)
-	{
-		m_trackSet.add(message);
-		return true;
 	}
 
 	void replaceBracketsAndAmpersands(std::string &input)
@@ -261,10 +250,6 @@ public:
 
 private:
 	std::ofstream of;
-	std::string m_filename;
-	unsigned int m_tracksPerFile;
-	unsigned int m_currentPartition;
-	AisTrackSet m_trackSet;
 };
 
 #endif
