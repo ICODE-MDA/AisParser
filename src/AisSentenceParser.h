@@ -24,15 +24,18 @@ public:
 	@param numFields is the number of fields in the sentence (e.g. sentence == a,b,c,d,e would mean that numFields == 5)
 	*/
 	AisSentenceParser(std::string sentence){
+		m_seperators.push_back(13); // Carriage Return
+		m_seperators.push_back(44); // Comma
+
 		m_fullSentence = sentence;
-		boost::split(m_parsedSentence, sentence, boost::is_any_of(","));
+		boost::split(m_parsedSentence, sentence, boost::is_any_of(m_seperators));
 		m_numberOfSentences = 0;
 		m_currentSentenceNumber = 0;
 	}
 
 	void setSentence(std::string sentence){
 		m_fullSentence = sentence;
-		boost::split(m_parsedSentence, sentence, boost::is_any_of(","));
+		boost::split(m_parsedSentence, sentence, boost::is_any_of(m_seperators));
 	}
 
 	std::vector<std::string> getParsedSentence(){
@@ -83,6 +86,7 @@ protected:
 	std::vector<std::string> m_parsedSentence;
 	int m_numberOfSentences;
 	int m_currentSentenceNumber;
+	vector<char> m_seperators;
 };
 
 #endif
