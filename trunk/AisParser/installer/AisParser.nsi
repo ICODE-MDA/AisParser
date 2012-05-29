@@ -36,7 +36,7 @@ UninstPage instfiles      ; Perform the uninstall
 UserInfo::GetAccountType
 pop $0
 ${If} $0 != "admin" ;Require admin rights on NT4+
-        messageBox mb_iconstop "Administrator rights required!"
+        messageBox mb_iconstop "Administrator rights are required to install this application. Please re-run this installer as a user who is a member of the Administrators group."
         setErrorLevel 740 ;ERROR_ELEVATION_REQUIRED
         quit
 ${EndIf}
@@ -78,6 +78,9 @@ sectionEnd
  
 # uninstaller section start
 section "uninstall"
+    setShellVarContext all
+    !insertmacro VerifyUserIsAdmin
+
     #Empty install directory  
     RMDir /r "$INSTDIR\*.*"
     #Remove the install directory 
