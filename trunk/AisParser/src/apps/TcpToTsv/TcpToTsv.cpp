@@ -85,8 +85,8 @@ int main(int argc, char** argv)
 
 			//load the next sentence from the AIS input to the parser
 			//STEPX: choose the correct type of sentence parser
-			AisMsisSentenceParser aisSentenceParser(aisInputSource.getNextSentence());
-			//AisSatSentenceParser aisSentenceParser(aisInputSource.getNextSentence());
+			//AisMsisSentenceParser aisSentenceParser(aisInputSource.getNextSentence());
+			AisSatSentenceParser aisSentenceParser(aisInputSource.getNextSentence());
 			AisMessageParser aisMessageParser;
 
 			if(aisSentenceParser.isMessageValid())

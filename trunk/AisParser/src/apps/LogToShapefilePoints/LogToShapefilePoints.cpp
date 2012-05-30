@@ -70,7 +70,7 @@ int main(int argc, char** argv)
 
 		//Define output class (an AisWriter)
 		//STEPX: choose the correct type of output source
-		AisShapefilePointWriter aisWriter(filename + ".p" + boost::lexical_cast<string>(partition++) + ".shp");
+		AisShapefilePointWriter aisWriter(filename + ".p" + boost::lexical_cast<string>(partition++));
 
 		if(!aisWriter.isReady())
 		{

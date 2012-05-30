@@ -134,25 +134,29 @@ private:
 
 	bool init()
 	{
-		aisDebug("Initializing database");
+        aisDebug("Initializing database");
 		try
 		{
+            aisDebug("beforeenv")
 			m_env = oracle::occi::Environment::createEnvironment(oracle::occi::Environment::DEFAULT);
+            aisDebug("afterenv")
 			if(!m_env){
 				throw std::exception("Could not create Oracle environment");
 			}
+            aisDebug("environmentCreated");
 			std::string connectionString = m_hostname + "/" + m_databaseName;
 			m_con = m_env->createConnection (m_username, m_password, connectionString);
 			if(!m_con){
 				throw std::exception("Could not create Oracle connection");
 			}
-		
+            aisDebug("connectionCreated");
 			try
 			{
 				m_sqlStatement = m_con->createStatement();
 				if(!m_sqlStatement){
 					throw std::exception("Could not create Oracle sql statement");
 				}
+                aisDebug("statementCreated");
 				m_sqlStatement->setAutoCommit(TRUE);      
 			}
 			catch (oracle::occi::SQLException &e)

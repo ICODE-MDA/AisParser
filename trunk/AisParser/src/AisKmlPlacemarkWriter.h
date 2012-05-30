@@ -33,7 +33,7 @@
 class AisKmlPlacemarkWriter : public AisWriter{
 public:
 	AisKmlPlacemarkWriter(std::string filename){
-		of.open(filename, std::ios::out);
+		of.open(filename + ".kml", std::ios::out);
 		writeHeader();
 	}
 

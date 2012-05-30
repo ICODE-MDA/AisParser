@@ -70,7 +70,7 @@
 class AisKmlTrackWriter : public AisTrackWriter{
 public:
 	AisKmlTrackWriter(std::string filename):
-		AisTrackWriter(filename),
+		AisTrackWriter(filename + ".kml"),
 		of()
 	{
 		

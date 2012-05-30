@@ -70,7 +70,7 @@ int main(int argc, char** argv)
 
 		//Define output class (an AisWriter)
 		//STEPX: choose the correct type of output source
-		AisKmlPlacemarkWriter aisWriter(filename + ".p" + boost::lexical_cast<string>(partition++) + ".kml");
+		AisKmlPlacemarkWriter aisWriter(filename + ".p" + boost::lexical_cast<string>(partition++) );
 
 		if(!aisWriter.isReady())
 		{

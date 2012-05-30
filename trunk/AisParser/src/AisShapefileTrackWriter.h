@@ -24,7 +24,7 @@
 class AisShapefileTrackWriter : public AisTrackWriter{
 public:
 	AisShapefileTrackWriter(std::string filename):
-		AisTrackWriter(filename)
+		AisTrackWriter(filename + ".shp")
 	{
 	}
 

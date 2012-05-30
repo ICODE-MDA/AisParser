@@ -11,7 +11,7 @@
 class AisCsvWriter : public AisWriter{
 public:
 	AisCsvWriter(std::string filename){
-		of.open(filename, std::ios::out);
+		of.open(filename + ".csv", std::ios::out);
 	}
 
 	~AisCsvWriter(){
