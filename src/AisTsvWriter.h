@@ -12,7 +12,7 @@
 class AisTsvWriter : public AisWriter{
 public:
 	AisTsvWriter(std::string filename){
-		of.open(filename, std::ios::out);
+		of.open(filename + ".tsv", std::ios::out);
 	}
 
 	AisTsvWriter(int year, int month, int day, int partition){

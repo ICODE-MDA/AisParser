@@ -14,7 +14,7 @@
 class AisShapefilePointWriter : public AisWriter{
 public:
 	AisShapefilePointWriter(std::string filename){
-		initializeShapefiles(filename);
+		initializeShapefiles(filename + ".shp");
 	}
 
 	AisShapefilePointWriter(int year, int month, int day, int partition){
