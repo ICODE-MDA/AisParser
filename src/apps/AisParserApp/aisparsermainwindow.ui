@@ -347,7 +347,7 @@
       <item>
        <widget class="QLineEdit" name="usernameLineEdit">
         <property name="text">
-         <string>AIAUser</string>
+         <string/>
         </property>
        </widget>
       </item>
@@ -361,7 +361,7 @@
       <item>
        <widget class="QLineEdit" name="passwordLineEdit">
         <property name="text">
-         <string>H3lloG00dby3</string>
+         <string/>
         </property>
         <property name="echoMode">
          <enum>QLineEdit::Password</enum>
@@ -378,7 +378,7 @@
       <item>
        <widget class="QLineEdit" name="hostnameLineEdit">
         <property name="text">
-         <string>mrs.fantastic.sd.spawar.navy.mil</string>
+         <string/>
         </property>
        </widget>
       </item>
@@ -392,7 +392,7 @@
       <item>
        <widget class="QLineEdit" name="databaseNameLineEdit">
         <property name="text">
-         <string>orclAIS</string>
+         <string/>
         </property>
        </widget>
       </item>
@@ -406,7 +406,7 @@
       <item>
        <widget class="QLineEdit" name="tableNameLineEdit">
         <property name="text">
-         <string>CHILEAIS</string>
+         <string/>
         </property>
        </widget>
       </item>
