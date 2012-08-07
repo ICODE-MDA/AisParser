@@ -1,4 +1,5 @@
 CREATE TABLE IF NOT EXISTS vessels (
+  key_column BIGSERIAL PRIMARY KEY,
   MessageType float8 DEFAULT NULL, 
   MMSI float8 NOT NULL DEFAULT '0',
   NavStatus varchar(128) DEFAULT NULL,
@@ -27,4 +28,5 @@ CREATE TABLE IF NOT EXISTS vessels (
   STREAMID VARCHAR(36) DEFAULT NULL
 );
 
+INSERT INTO vessels VALUES (DEFAULT , 1, 123456789, 'Trawling', 0.1, 0.2, 0.3, 0.4, 0.5, 90.0, 100526, 123456789, 'vessel name', 12, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 'Destination', 'callsign', 3, 102612, 39, 'orbcomm' );
 
