@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS vessels (
   key_column BIGSERIAL PRIMARY KEY,
   MessageType float8 DEFAULT NULL, 
   MMSI float8 NOT NULL DEFAULT '0',
-  NavStatus varchar(128) DEFAULT NULL,
+  NavStatus numeric(10,0) DEFAULT 0,
   ROT float8 DEFAULT NULL,
   SOG float8 DEFAULT NULL,
   LON float8 DEFAULT NULL,
