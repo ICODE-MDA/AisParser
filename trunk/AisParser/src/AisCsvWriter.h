@@ -13,7 +13,15 @@ public:
 	AisCsvWriter(std::string filename){
 		of.open(filename + ".csv", std::ios::out);
 	}
-
+	AisCsvWriter(int year, int month, int day, int partition){
+		stringstream filename;
+		filename << setfill('0');
+		filename << year;
+		filename << setw(2) << month;
+		filename << setw(2) << day;
+		filename << ".p" << partition << ".csv";
+		of.open(filename.str(), std::ios::out);
+	}
 	~AisCsvWriter(){
 		if(of.is_open()){
 			of.close();
