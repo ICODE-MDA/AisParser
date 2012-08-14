@@ -36,8 +36,7 @@ cmake -G "Visual Studio 10"^
  -DPOSTGRESQL_LIBRARY_PATH=%postgresql_library_dir%^
  -DBOOST_INCLUDE_DIR=%boost_dir%^
  -DBOOST_LIBRARY_PATH=%boost_dir%/stage/lib/x86^
- ../src/
-
+ ../
 
 rem Create scripts to put the Oracle binaries in the path for running 
 
