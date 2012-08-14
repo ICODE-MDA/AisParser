@@ -3,6 +3,8 @@ project( AisParser )
 add_subdirectory( CannedAisServer )
 add_subdirectory( TcpToTsv )
 add_subdirectory( LogToTsv )
+add_subdirectory( TcpToCsv )
+add_subdirectory( LogToCsv )
 add_subdirectory( LogToKmlPlacemarks )
 add_subdirectory( LogToKmlTracks )
 
