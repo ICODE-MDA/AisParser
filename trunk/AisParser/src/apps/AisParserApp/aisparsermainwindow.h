@@ -52,6 +52,8 @@ private:
     bool validateFlatfileOutputArguments();
     bool validateFlatfileInputArguments();
     bool validateTcpInputArguments();
+	void readSettings();
+	void writeSettings();
 
     void enableDatabaseFrame(bool enable);
     void enableTcpPortEntry(bool enable);

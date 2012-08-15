@@ -5,6 +5,7 @@
 #include <QMessageBox>
 #include <QMimeData>
 #include <QDragEnterEvent>
+#include <QSettings>
 
 #include <iostream>
 #include <stdexcept>
@@ -48,13 +49,59 @@ AisParserMainWindow::AisParserMainWindow(QWidget *parent) :
     connect(ui->actionClose, SIGNAL(triggered()), this, SLOT(close()));
 
 	setAcceptDrops(true);		//enables app window to accept dropped in elements, to support file/directory drag and drop input
+
+	readSettings();
 }
 
 AisParserMainWindow::~AisParserMainWindow()
 {
+	writeSettings();
     delete ui;
 }
 
+
+void AisParserMainWindow::writeSettings()
+
+{
+	QSettings settings;
+	settings.beginGroup("AisParserMainWindow");
+	settings.setValue("inputFile", ui->filenameLineEdit->text());
+	settings.setValue("tcp_hostname", ui->inputHostnameLineEdit->text());
+	settings.setValue("tcp_port", ui->portSpinBox->value());
+	settings.setValue("messages_per_file", ui->messagesPerFileSpinBox->value());
+	settings.setValue("outputDir", ui->outputDirectoryLineEdit->text());
+	settings.setValue("database_username", ui->usernameLineEdit->text());
+	//settings.setValue("database_password", ui->passwordLineEdit->text());
+	settings.setValue("database_hostname", ui->hostnameLineEdit->text());
+	settings.setValue("database_name", ui->databaseNameLineEdit->text());
+	settings.setValue("database_table", ui->tableNameLineEdit->text());
+	settings.setValue("database_numiterations", ui->numIterationsSpinBox->value());
+	settings.endGroup();
+}
+
+ 
+
+void AisParserMainWindow::readSettings()
+
+{
+	//start settings
+	QSettings settings;
+	settings.beginGroup("AisParserMainWindow");
+	ui->filenameLineEdit->setText(settings.value("inputFile", "").toString());
+	ui->inputHostnameLineEdit->setText(settings.value("tcp_hostname", "localhost").toString());
+	ui->portSpinBox->setValue(settings.value("tcp_port", 10000).toInt());
+	ui->messagesPerFileSpinBox->setValue(settings.value("messages_per_file", 0).toInt());
+	ui->outputDirectoryLineEdit->setText(settings.value("outputDir", "").toString());
+	ui->usernameLineEdit->setText(settings.value("database_username", "").toString());
+	ui->hostnameLineEdit->setText(settings.value("database_hostname", "").toString());
+	ui->databaseNameLineEdit->setText(settings.value("database_name", "").toString());
+	ui->tableNameLineEdit->setText(settings.value("database_table","").toString());
+	ui->numIterationsSpinBox->setValue(settings.value("database_numiterations", 0).toInt());
+	//end settings
+	settings.endGroup();
+}
+
+ 
 void AisParserMainWindow::displayLicense()
 {
     QMessageBox msgBox;
