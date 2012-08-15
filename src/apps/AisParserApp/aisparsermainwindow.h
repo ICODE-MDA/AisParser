@@ -28,6 +28,8 @@ public:
 protected slots:
     void manageInputVisibility(QString inputChoice);
     void manageOutputVisibility(QString outputChoice);
+	void dragEnterEvent(QDragEnterEvent *event);
+	void dropEvent(QDropEvent *event);
     void directoryChooser();
     void fileChooser();
     void startParsingAis();
