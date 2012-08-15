@@ -59,7 +59,7 @@ int main(int argc, char** argv)
 	
 	//Define output class (an AisWriter)
 	//STEPX: choose the correct type of output source
-	AisMySqlDatabaseWriter aisWriter(db_user, db_pass, db_host, db_name, db_table, boost::lexical_cast<int>(db_numIterations));
+	AisPostgreSqlDatabaseWriter aisWriter(db_user, db_pass, db_host, db_name, db_table, boost::lexical_cast<int>(db_numIterations));
 
 	if(!aisWriter.isReady())
 	{
