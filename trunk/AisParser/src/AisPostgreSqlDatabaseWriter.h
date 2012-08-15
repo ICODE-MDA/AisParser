@@ -26,6 +26,8 @@ class AisPostgreSqlDatabaseWriter : public AisWriter{
 public:
 	AisPostgreSqlDatabaseWriter(std::string username, std::string password, std::string hostname, std::string databaseName, std::string tableName, int iterations = 100000)
 	{
+		m_con=NULL;
+		m_work=NULL;
 		m_currentIteration = 1;
 		m_username=username;
 		m_password=password;
@@ -208,6 +210,27 @@ private:
 		aisDebug("Database initialized successfully");
 		return true;
 
+	}
+
+	void print()
+	{
+		cout << "Username: " << m_username << endl;
+		cout << "Password: " << m_password << endl;
+		cout << "Hostname: " << m_hostname << endl;
+		cout << "Database Name: " << m_databaseName<< endl;
+		cout << "Table Name: " << m_tableName<< endl;
+		cout << "Iterations: " << m_iterations<< endl;
+		cout << "Current Iteration: " << m_currentIteration<< endl;
+		cout << "Initialized: " << m_initialized<< endl;
+
+		if(m_con)
+		{
+			cout << "Connection is not null" << endl;
+		}
+		if(m_work)
+		{
+			cout << "Work is not null" << endl;
+		}
 	}
 
 	string m_username;

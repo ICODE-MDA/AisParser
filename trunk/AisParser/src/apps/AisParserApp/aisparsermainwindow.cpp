@@ -657,11 +657,11 @@ int AisParserMainWindow::databaseParser()
         filename = ui->filenameLineEdit->displayText().toStdString();
     }
 
-    string db_user = ui->usernameLineEdit->displayText().toStdString();
-    string db_pass = ui->passwordLineEdit->displayText().toStdString();
-    string db_host = ui->hostnameLineEdit->displayText().toStdString();
-    string db_name = ui->databaseNameLineEdit->displayText().toStdString();
-    string db_table = ui->tableNameLineEdit->displayText().toStdString();
+    string db_user = ui->usernameLineEdit->text().toStdString();
+    string db_pass = ui->passwordLineEdit->text().toStdString();
+    string db_host = ui->hostnameLineEdit->text().toStdString();
+    string db_name = ui->databaseNameLineEdit->text().toStdString();
+    string db_table = ui->tableNameLineEdit->text().toStdString();
     int db_numIterations = ui->numIterationsSpinBox->value();
 
     //Define input class (an AisInputSource)
