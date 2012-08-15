@@ -23,8 +23,8 @@ using namespace std;
 
 void usage()
 {
-	cerr << "AisParserApp.exe <input-filename> <db-username> <db-password> <db-hostname> <db-name> <db-table> <db-numIterations>" << endl;
-	cerr << "For example:\n AisParserApp.exe 20111010.log username password databaseserver.example.com exampleDB AISTable 100000" << endl;
+	cerr << "AisParserApp.exe <input-filename> <db-username> <db-password> <db-hostname> <db-name> <db-table> <db-numIterations> <db-static>" << endl;
+	cerr << "For example:\n AisParserApp.exe 20111010.log username password databaseserver.example.com exampleDB AISTable 100000 staticDB" << endl;
 }
 
 //========================================================================================
@@ -36,13 +36,17 @@ int main(int argc, char** argv)
 {
 
 	//parse args
-	if(argc!=8)
+	if(argc!=9)
 	{
 		usage();
 		return -1;
 	}
 
 	boost::timer::auto_cpu_timer timer;
+	
+	
+	int message_type;
+	
 
 	string filename = argv[1];
 	string db_user = argv[2];
@@ -51,6 +55,8 @@ int main(int argc, char** argv)
 	string db_name = argv[5];
 	string db_table = argv[6];
 	string db_numIterations = argv[7];
+	string db_static_table = argv[8];
+		
 
 	//Define input class (an AisInputSource)
 	//STEPX: choose the correct type of input source
@@ -59,15 +65,19 @@ int main(int argc, char** argv)
 	
 	//Define output class (an AisWriter)
 	//STEPX: choose the correct type of output source
-	AisPostgreSqlDatabaseWriter aisWriter(db_user, db_pass, db_host, db_name, db_table, boost::lexical_cast<int>(db_numIterations));
+	AisPostgreSqlDatabaseWriter aisWriterD(db_user, db_pass, db_host, db_name, db_table, boost::lexical_cast<int>(db_numIterations));
+	AisPostgreSqlDatabaseWriter aisWriterS(db_user, db_pass, db_host, db_name, db_static_table, boost::lexical_cast<int>(db_numIterations));
 
-
-	if(!aisWriter.isReady())
+	if(!aisWriterS.isReady())
 	{
 		aisDebug("AisWriter is not ready");
 		return -1;
 	}
-
+	if(!aisWriterD.isReady())
+	{
+		aisDebug("AisWriter is not ready");
+		return -1;
+	}
 	while(aisInputSource.isReady())
 	{
 		//load the next sentence from the AIS input to the parser
@@ -105,7 +115,13 @@ int main(int argc, char** argv)
 				//add streamid from ais sentence to the ais message
 				aisMessage.setSTREAMID(aisSentenceParser.getStreamId());
 
-				aisWriter.writeEntry(aisMessage);		
+				message_type = aisMessage.getMESSAGETYPE();
+				//check if static AIS message type
+				if (message_type == 5 || message_type == 24)
+					aisWriterS.writeEntry(aisMessage);
+				else
+					aisWriterD.writeEntry(aisMessage);
+						
 				}
 				catch(exception &e)
 				{
