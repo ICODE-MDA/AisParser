@@ -1,5 +1,5 @@
-#ifndef AisMySqlDatabaseWriter_h
-#define AisMySqlDatabaseWriter_h
+#ifndef AisPostgreSqlDatabaseWriter_h
+#define AisPostgreSqlDatabaseWriter_h
 
 #include <exception>
 #include <stdexcept>
@@ -22,9 +22,9 @@ using namespace pqxx;
 Class for writing AIS messages to an PostgreSql database.
 Declare...check isReady()...writeEntry
 */
-class AisMySqlDatabaseWriter : public AisWriter{
+class AisPostgreSqlDatabaseWriter : public AisWriter{
 public:
-	AisMySqlDatabaseWriter(std::string username, std::string password, std::string hostname, std::string databaseName, std::string tableName, int iterations = 100000)
+	AisPostgreSqlDatabaseWriter(std::string username, std::string password, std::string hostname, std::string databaseName, std::string tableName, int iterations = 100000)
 	{
 		m_currentIteration = 1;
 		m_username=username;
@@ -37,9 +37,9 @@ public:
 		m_initialized = init();
 	}
 
-	~AisMySqlDatabaseWriter()
+	~AisPostgreSqlDatabaseWriter()
 	{
-		aisDebug("AisMySqlDatabaseWriter Destructor");
+		aisDebug("AisPostgreSqlDatabaseWriter Destructor");
 		if(m_initialized)
 		{
 			try
