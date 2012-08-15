@@ -21,6 +21,7 @@
 #include <AisCsvWriter.h>
 #include <AisDatabaseWriter.h>
 #include <AisMySqlDatabaseWriter.h>
+#include <AisPostgreSqlDatabaseWriter.h>
 #include <AisKmlPlacemarkWriter.h>
 #include <AisKmlTrackWriter.h>
 #include <AisShapefilePointWriter.h>
@@ -111,7 +112,7 @@ void AisParserMainWindow::manageInputVisibility(QString inputChoice)
 
 void AisParserMainWindow::manageOutputVisibility(QString outputChoice)
 {
-    if(outputChoice == "MySql Database" || outputChoice == "Oracle Database")
+    if(outputChoice == "MySql Database" || outputChoice == "Oracle Database" || outputChoice == "PostgreSQL Database")
     {
         enableDatabaseFrame(true);
     }
@@ -162,7 +163,7 @@ bool AisParserMainWindow::validateArguments()
     QString inputType = ui->inputTypeComboBox->currentText();
     bool outputArgumentsValid = false;
     bool inputArgumentsValid = false;
-    if(outputType == "MySql Database" || outputType == "Oracle Database")
+    if(outputType == "MySql Database" || outputType == "Oracle Database" || outputType == "PostgreSQL Database")
     {
         outputArgumentsValid = validateDatabaseArguments();
     }
@@ -204,6 +205,10 @@ void AisParserMainWindow::startParsingAis()
         {
             pointParser<AisFlatFileInputSource, AisTsvWriter, AisSatSentenceParser>();
         }
+		else if(outputChoice == "PostgreSQL Database")
+        {
+            databaseParser<AisFlatFileInputSource, AisPostgreSqlDatabaseWriter, AisSatSentenceParser>();
+        }
         else if(outputChoice == "MySql Database")
         {
             databaseParser<AisFlatFileInputSource, AisMySqlDatabaseWriter, AisSatSentenceParser>();
@@ -241,6 +246,10 @@ void AisParserMainWindow::startParsingAis()
         if(outputChoice == "Tab-Seperated Files")
         {
             pointParser<AisFlatFileInputSource, AisTsvWriter, AisMsisSentenceParser>();
+        }
+		else if(outputChoice == "PostgreSQL Database")
+        {
+            databaseParser<AisFlatFileInputSource, AisPostgreSqlDatabaseWriter, AisMsisSentenceParser>();
         }
         else if(outputChoice == "MySql Database")
         {
@@ -280,6 +289,10 @@ void AisParserMainWindow::startParsingAis()
         {
             pointParser<AisTcpStreamInputSource, AisTsvWriter, AisSatSentenceParser>();
         }
+		else if(outputChoice == "PostgreSQL Database")
+        {
+            databaseParser<AisTcpStreamInputSource, AisPostgreSqlDatabaseWriter, AisSatSentenceParser>();
+        }
         else if(outputChoice == "MySql Database")
         {
             databaseParser<AisTcpStreamInputSource, AisMySqlDatabaseWriter, AisSatSentenceParser>();
@@ -317,6 +330,10 @@ void AisParserMainWindow::startParsingAis()
         if(outputChoice == "Tab-Seperated Files")
         {
             pointParser<AisTcpStreamInputSource, AisTsvWriter, AisMsisSentenceParser>();
+        }
+		else if(outputChoice == "PostgreSQL Database")
+        {
+            databaseParser<AisTcpStreamInputSource, AisPostgreSqlDatabaseWriter, AisMsisSentenceParser>();
         }
         else if(outputChoice == "MySql Database")
         {
