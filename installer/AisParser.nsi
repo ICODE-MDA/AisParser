@@ -9,7 +9,7 @@ RequestExecutionLevel admin
 Name "ICODE-MDA"
 
 # define name of installer
-outFile "AisParserApp.exe"
+outFile "AisParserInstaller.exe"
 BrandingText "ICODE-MDA"
  
 # define installation directory

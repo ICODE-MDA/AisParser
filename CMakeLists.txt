@@ -113,14 +113,24 @@ endif()
 
 ###
 if(BUILD_SHAPEFILE_APPS)
-	if(NOT DEFINED ICODE_THIRD_PARTY_DIR)
-		set(ICODE_THIRD_PARTY_DIR "" CACHE PATH "ICODE 3rd Party Include Directory")
+	if(NOT DEFINED SHAPELIB_INCLUDE_DIR)
+		set(SHAPELIB_INCLUDE_DIR "" CACHE PATH "Shapelib Include Directory")
 	endif()
 
-	if(IS_DIRECTORY ${ICODE_THIRD_PARTY_DIR})
-		message(STATUS "ICODE 3rd Party Include Directory: ${ICODE_THIRD_PARTY_DIR}")
+	if(IS_DIRECTORY ${SHAPELIB_INCLUDE_DIR})
+		message(STATUS "Shapelib Include Directory: ${SHAPELIB_INCLUDE_DIR}")
 	else()	
-		message(SEND_ERROR "ICODE_THIRD_PARTY_DIR must be set to a directory!")
+		message(SEND_ERROR "SHAPELIB_INCLUDE_DIR must be set to a directory!")
+	endif()
+	
+	if(NOT DEFINED SHAPELIB_LIBRARY_PATH)
+		set(SHAPELIB_LIBRARY_PATH "" CACHE PATH "Shapelib library Directory")
+	endif()
+
+	if(IS_DIRECTORY ${SHAPELIB_LIBRARY_PATH})
+		message(STATUS "Shapelib library Directory: ${SHAPELIB_LIBRARY_PATH}")
+	else()	
+		message(SEND_ERROR "SHAPELIB_LIBRARY_PATH must be set to a directory!")
 	endif()
 endif()
 ###
