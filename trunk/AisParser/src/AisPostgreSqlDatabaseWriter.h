@@ -35,6 +35,7 @@ public:
 		m_databaseName=databaseName;
 		m_tableName=tableName;
 		m_iterations = iterations;
+		m_sqlStatement = "";
 
 		m_initialized = init();
 	}
@@ -48,7 +49,20 @@ public:
 			{
 				aisDebug("trying to execute update any remaining entries");
 				//execute statement to add any remainign
-				//m_sqlPreparedStatement->executeUpdate();
+				//aisDebug("executing multirow insert start");
+				if(m_sqlStatement != "")
+				{
+					m_work = new work(*m_con);
+					if(!m_work)
+					{
+						throw std::runtime_error("Could not create PostgreSql Work");
+					}
+					m_work->exec(m_sqlStatement);
+					m_work->commit();
+					delete m_work;
+					//aisDebug("executing multirow insert end");
+					//m_sqlPreparedStatement->executeUpdate();
+				}
 			}
 			catch(const exception &e)
 			{
@@ -94,13 +108,17 @@ public:
 	bool writeEntry(const AisMessage& message)
 	{
 		try
-		{
-			m_work = new work(*m_con);
-			if(!m_work)
+		{	
+			if(m_currentIteration == 1 || m_iterations <= 0)
 			{
-				throw std::runtime_error("Could not create PostgreSql Work");
+				m_sqlStatement = "INSERT INTO " + m_tableName + " VALUES(DEFAULT, ";
 			}
-			m_work->exec("INSERT INTO " + m_tableName + " VALUES(DEFAULT, "  +
+			else
+			{
+				m_sqlStatement+= ", (DEFAULT, ";
+			}
+
+			m_sqlStatement+=
 				boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
 				boost::lexical_cast<std::string>(message.getMMSI())+ ", " +
 				boost::lexical_cast<std::string>(message.getNAVSTATUS())+ ", " +
@@ -126,16 +144,26 @@ public:
 				boost::lexical_cast<std::string>(message.getPOSACCURACY())+ ", " +
 				boost::lexical_cast<std::string>(message.getETA())+ ", " +
 				boost::lexical_cast<std::string>(message.getPOSFIXTYPE())+ ", '" +
-				sanitize(boost::lexical_cast<std::string>(message.getSTREAMID()))+ "')");
-			m_work->commit();
-			delete m_work;
-		
-			//m_currentIteration = 1;
-			//aisDebug("executing update start");
-			//m_sqlPreparedStatement->executeUpdate();
-			//aisDebug("executing update finish");
+				sanitize(boost::lexical_cast<std::string>(message.getSTREAMID()))+ "')";
+
+			if(m_currentIteration++ == m_iterations || m_iterations <= 0)
+			{
+				m_currentIteration = 1;
+
+				//aisDebug("executing multirow insert start");
+				m_work = new work(*m_con);
+				if(!m_work)
+				{
+					throw std::runtime_error("Could not create PostgreSql Work");
+				}
+				m_work->exec(m_sqlStatement);
+				m_work->commit();
+				m_sqlStatement = string("");
+				delete m_work;
+				//aisDebug("executing multirow insert end");
+			}
 			return true;
-		
+
 		}
 		catch(const exception &e)
 		{
@@ -163,10 +191,6 @@ private:
 			if(!m_con){
 				throw std::runtime_error("Could not create PostgreSql connection");
 			}
-			aisDebug(m_hostname);
-			aisDebug(m_username);
-			aisDebug(m_password);
-			
 			
 			//try
 			//{
@@ -242,6 +266,7 @@ private:
 	int m_currentIteration;
 	bool m_initialized;
 	
+	string m_sqlStatement;
 	connection*  m_con;
 	work* m_work;
 };
