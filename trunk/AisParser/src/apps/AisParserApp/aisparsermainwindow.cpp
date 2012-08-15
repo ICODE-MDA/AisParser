@@ -3,6 +3,8 @@
 
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QMimeData>
+#include <QDragEnterEvent>
 
 #include <iostream>
 #include <stdexcept>
@@ -44,6 +46,8 @@ AisParserMainWindow::AisParserMainWindow(QWidget *parent) :
     ui->statusbar->showMessage("Idle...");
     connect(ui->actionLicense, SIGNAL(triggered()), this, SLOT(displayLicense()));
     connect(ui->actionClose, SIGNAL(triggered()), this, SLOT(close()));
+
+	setAcceptDrops(true);		//enables app window to accept dropped in elements, to support file/directory drag and drop input
 }
 
 AisParserMainWindow::~AisParserMainWindow()
@@ -63,10 +67,43 @@ void AisParserMainWindow::displayLicense()
     return;
 }
 
+//Overloaded/reimplemented function to handle dragged in file/directory events
+void AisParserMainWindow::dragEnterEvent(QDragEnterEvent *event)
+{
+	if (event->mimeData()->hasUrls())
+		event->acceptProposedAction();
+}
+
+//Overloaded/reimplemented function to handle dropped in file/directory events
+void AisParserMainWindow::dropEvent(QDropEvent *event)
+{
+	foreach(QUrl url, event->mimeData()->urls())
+	{
+		QString urltext = url.toLocalFile();
+		QString suffix = QFileInfo(urltext).suffix().toUpper();
+		//If dropped in element is a file (specifically, a "log" file), then use URL as input
+		if(suffix == "LOG")
+		{
+			event->acceptProposedAction();
+			ui->filenameLineEdit->setText(urltext);
+			continue;
+		}
+		//If dropped in element is a directory, use the URL as output directory
+		else if (suffix == "")
+		{
+			event->acceptProposedAction();
+			ui->outputDirectoryLineEdit->setText(urltext);
+			continue;
+		}
+	}
+
+	event->acceptProposedAction();
+}
+
 void AisParserMainWindow::fileChooser()
 {
-    QString filename = QFileDialog::getOpenFileName();
-    ui->filenameLineEdit->setText(filename);
+	QString filename = QFileDialog::getOpenFileName();
+	ui->filenameLineEdit->setText(filename);
 }
 
 void AisParserMainWindow::directoryChooser()
