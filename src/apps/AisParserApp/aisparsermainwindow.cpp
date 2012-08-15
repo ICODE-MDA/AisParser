@@ -242,6 +242,10 @@ void AisParserMainWindow::startParsingAis()
         {
             pointParser<AisFlatFileInputSource, AisTsvWriter, AisSatSentenceParser>();
         }
+		else if(outputChoice == "Comma-Seperated Files")
+        {
+            pointParser<AisFlatFileInputSource, AisCsvWriter, AisSatSentenceParser>();
+        }
 		else if(outputChoice == "PostgreSQL Database")
         {
             databaseParser<AisFlatFileInputSource, AisPostgreSqlDatabaseWriter, AisSatSentenceParser>();
@@ -283,6 +287,10 @@ void AisParserMainWindow::startParsingAis()
         if(outputChoice == "Tab-Seperated Files")
         {
             pointParser<AisFlatFileInputSource, AisTsvWriter, AisMsisSentenceParser>();
+        }
+		else if(outputChoice == "Comma-Seperated Files")
+        {
+            pointParser<AisFlatFileInputSource, AisCsvWriter, AisMsisSentenceParser>();
         }
 		else if(outputChoice == "PostgreSQL Database")
         {
@@ -326,6 +334,10 @@ void AisParserMainWindow::startParsingAis()
         {
             pointParser<AisTcpStreamInputSource, AisTsvWriter, AisSatSentenceParser>();
         }
+		else if(outputChoice == "Comma-Seperated Files")
+        {
+            pointParser<AisTcpStreamInputSource, AisCsvWriter, AisSatSentenceParser>();
+        }
 		else if(outputChoice == "PostgreSQL Database")
         {
             databaseParser<AisTcpStreamInputSource, AisPostgreSqlDatabaseWriter, AisSatSentenceParser>();
@@ -367,6 +379,10 @@ void AisParserMainWindow::startParsingAis()
         if(outputChoice == "Tab-Seperated Files")
         {
             pointParser<AisTcpStreamInputSource, AisTsvWriter, AisMsisSentenceParser>();
+        }
+		else if(outputChoice == "Comma-Seperated Files")
+        {
+            pointParser<AisTcpStreamInputSource, AisCsvWriter, AisMsisSentenceParser>();
         }
 		else if(outputChoice == "PostgreSQL Database")
         {

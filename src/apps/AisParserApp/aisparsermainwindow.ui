@@ -248,6 +248,11 @@
        <string>Tab-Seperated Files</string>
       </property>
      </item>
+     <item>
+        <property name="text">
+          <string>Comma-Seperated Files</string>
+        </property>
+      </item>
       <item>
         <property name="text">
           <string>PostgreSQL Database</string>
