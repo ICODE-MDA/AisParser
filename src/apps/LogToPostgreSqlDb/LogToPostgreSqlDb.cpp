@@ -8,6 +8,7 @@
 
 //Parser Type
 #include <AisSatSentenceParser.h>
+#include <AisMsisSentenceParser.h>
 
 int main(int argc, char** argv)
 {
@@ -33,6 +34,8 @@ int main(int argc, char** argv)
 	AisFlatFileInputSource aisInputSource(filename);
 
 	databaseParser<AisPostgreSqlDatabaseWriter, AisSatSentenceParser>(aisInputSource,db_user, db_pass, db_host, db_name, db_table, db_numIterations, db_static_table);
+	//databaseParser<AisPostgreSqlDatabaseWriter, AisMsisSentenceParser>(aisInputSource,db_user, db_pass, db_host, db_name, db_table, db_numIterations, db_static_table);
+
 	return 0;
 }
 
