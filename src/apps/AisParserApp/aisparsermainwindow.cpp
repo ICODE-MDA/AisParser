@@ -66,11 +66,13 @@ void AisParserMainWindow::writeSettings()
 {
 	QSettings settings;
 	settings.beginGroup("AisParserMainWindow");
-	settings.setValue("inputFile", ui->filenameLineEdit->text());
+	settings.setValue("input_file_type", ui->inputTypeComboBox->currentIndex());
+	settings.setValue("input_file", ui->filenameLineEdit->text());
 	settings.setValue("tcp_hostname", ui->inputHostnameLineEdit->text());
 	settings.setValue("tcp_port", ui->portSpinBox->value());
+	settings.setValue("output_type", ui->outputTypeComboBox->currentIndex());
 	settings.setValue("messages_per_file", ui->messagesPerFileSpinBox->value());
-	settings.setValue("outputDir", ui->outputDirectoryLineEdit->text());
+	settings.setValue("output_dir", ui->outputDirectoryLineEdit->text());
 	settings.setValue("database_username", ui->usernameLineEdit->text());
 	//settings.setValue("database_password", ui->passwordLineEdit->text());
 	settings.setValue("database_hostname", ui->hostnameLineEdit->text());
@@ -88,11 +90,13 @@ void AisParserMainWindow::readSettings()
 	//start settings
 	QSettings settings;
 	settings.beginGroup("AisParserMainWindow");
-	ui->filenameLineEdit->setText(settings.value("inputFile", "").toString());
+	ui->inputTypeComboBox->setCurrentIndex(settings.value("input_file_type",0).toInt());
+	ui->filenameLineEdit->setText(settings.value("input_file", "").toString());
 	ui->inputHostnameLineEdit->setText(settings.value("tcp_hostname", "localhost").toString());
 	ui->portSpinBox->setValue(settings.value("tcp_port", 10000).toInt());
+	ui->outputTypeComboBox->setCurrentIndex(settings.value("output_type", 0).toInt());
 	ui->messagesPerFileSpinBox->setValue(settings.value("messages_per_file", 0).toInt());
-	ui->outputDirectoryLineEdit->setText(settings.value("outputDir", "").toString());
+	ui->outputDirectoryLineEdit->setText(settings.value("output_dir", "").toString());
 	ui->usernameLineEdit->setText(settings.value("database_username", "").toString());
 	ui->hostnameLineEdit->setText(settings.value("database_hostname", "").toString());
 	ui->databaseNameLineEdit->setText(settings.value("database_name", "").toString());
