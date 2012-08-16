@@ -234,7 +234,7 @@ int databaseParser(AisInputSource& aisInputSource,string db_user, string db_pass
 	boost::timer::auto_cpu_timer timer;
 
 	bool splitStaticAndDynamic = false;
-	if(db_static_table=="")
+	if(db_static_table!="")
 	{
 		splitStaticAndDynamic = true;
 	}
@@ -298,9 +298,13 @@ int databaseParser(AisInputSource& aisInputSource,string db_user, string db_pass
 				int message_type = aisMessage.getMESSAGETYPE();
 				//check if static AIS message type
 				if ((message_type == 5 || message_type == 24) && splitStaticAndDynamic)
+				{
 					aisWriterS->writeEntry(aisMessage);
+				}
 				else
+				{
 					aisWriterD.writeEntry(aisMessage);
+				}
 						
 				}
 				catch(exception &e)
