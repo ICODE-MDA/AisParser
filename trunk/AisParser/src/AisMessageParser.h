@@ -2,13 +2,14 @@
 #define AisMessageParser_h
 
 #include <string>
+#include <vector>
 
 #include <boost/algorithm/string.hpp>
 
 #include <AisMessage.h>
 #include <AisDebug.h>
 
-
+using namespace std;
 /*
 http://www.navcen.uscg.gov/
 12. Why do I sometimes see more than one vessel with the same MMSI or vessel name (i.e. NAUT)? AIS users are required to operate their unit with a valid MMSI, unfortunately, some users neglect to do so (for example, use: 111111111, 123456789, 00000001, their U.S. documentation number, etc). A valid MMSI will start with a digit from 2 to 7, a U.S. assigned MMSI will start with either 338, 366, 367, 368, or 369. AIS users whom encounter a vessel using MMSI: 1193046 or named: NAUT should notify the user that their AIS unit is broadcasting improper data; see Nauticast AIS-MMSI Technical Bulletin for further information. All AIS users should check the accuracy of their AIS data prior to each voyage, and, particularly units that have been shutdown for any period of time. NOTE: If you are receiving (in range of) AIS reports from vessels using the same MMSI, they will appear as one vessel (jumping from position-to-position or line-to-line) on a graphical screen (e.g. ECS, ECDIS, radar) or on the AIS Minimal Keyboard Device (MKD).

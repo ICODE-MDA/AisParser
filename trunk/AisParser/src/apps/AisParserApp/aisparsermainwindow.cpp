@@ -34,6 +34,7 @@
 #include <AisMsisSentenceParser.h>
 #include <AisSatSentenceParser.h>
 #include <AisMessageParser.h>
+#include <AisParserTemplates.h>
 
 #include <AisMessage.h>
 
@@ -280,46 +281,58 @@ void AisParserMainWindow::startParsingAis()
         return;
     }
 
-    QString inputChoice = ui->inputTypeComboBox->currentText();
-    QString outputChoice = ui->outputTypeComboBox->currentText();
+	QString inputChoice = ui->inputTypeComboBox->currentText();
+	QString outputChoice = ui->outputTypeComboBox->currentText();
+
+	std::string filename = ui->filenameLineEdit->text().toStdString();		
+	unsigned int messagesPerFile = ui->messagesPerFileSpinBox->value();
+
+	std::string db_username = ui->usernameLineEdit->text().toStdString();
+	std::string db_password = ui->passwordLineEdit->text().toStdString();
+	std::string db_hostname = ui->hostnameLineEdit->text().toStdString();
+	std::string db_name = ui->databaseNameLineEdit->text().toStdString();
+	std::string db_table = ui->tableNameLineEdit->text().toStdString();
+	std::string db_numIterations = ui->numIterationsSpinBox->text().toStdString();
 
     if( inputChoice == "Satellite AIS Log")
     {
+		AisFlatFileInputSource aisInputSource(filename);
+
         if(outputChoice == "Tab-Seperated Files")
         {
-            pointParser<AisFlatFileInputSource, AisTsvWriter, AisSatSentenceParser>();
+            flatfileParser<AisTsvWriter, AisSatSentenceParser>(aisInputSource, filename, messagesPerFile);
         }
 		else if(outputChoice == "Comma-Seperated Files")
         {
-            pointParser<AisFlatFileInputSource, AisCsvWriter, AisSatSentenceParser>();
+			flatfileParser<AisCsvWriter, AisSatSentenceParser>(aisInputSource, filename, messagesPerFile);
         }
 		else if(outputChoice == "PostgreSQL Database")
         {
-            databaseParser<AisFlatFileInputSource, AisPostgreSqlDatabaseWriter, AisSatSentenceParser>();
+            databaseParser<AisPostgreSqlDatabaseWriter, AisSatSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, "");
         }
         else if(outputChoice == "MySql Database")
         {
-            databaseParser<AisFlatFileInputSource, AisMySqlDatabaseWriter, AisSatSentenceParser>();
+            databaseParser<AisMySqlDatabaseWriter, AisSatSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, "");
         }
         else if(outputChoice == "Oracle Database")
         {
-            databaseParser<AisFlatFileInputSource, AisDatabaseWriter, AisSatSentenceParser>();
+            databaseParser<AisDatabaseWriter, AisSatSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, "");
         }
         else if(outputChoice == "KML Placemarks")
         {
-            pointParser<AisFlatFileInputSource, AisKmlPlacemarkWriter, AisSatSentenceParser>();
+			flatfileParser<AisKmlPlacemarkWriter, AisSatSentenceParser>(aisInputSource, filename, messagesPerFile);
         }
         else if(outputChoice == "KML Tracks")
         {
-            trackParser<AisFlatFileInputSource, AisKmlTrackWriter, AisSatSentenceParser>();
+            trackParser<AisKmlTrackWriter, AisSatSentenceParser>(aisInputSource, filename, messagesPerFile);
         }
         else if(outputChoice == "ESRI Shapefile Points")
         {
-            pointParser<AisFlatFileInputSource, AisShapefilePointWriter, AisSatSentenceParser>();
+			flatfileParser<AisShapefilePointWriter, AisSatSentenceParser>(aisInputSource, filename, messagesPerFile);
         }
         else if(outputChoice == "ESRI Shapefile Tracks")
         {
-            trackParser<AisFlatFileInputSource, AisShapefileTrackWriter, AisSatSentenceParser>();
+            trackParser<AisShapefileTrackWriter, AisSatSentenceParser>(aisInputSource, filename, messagesPerFile);
         }
         else
         {
@@ -331,41 +344,43 @@ void AisParserMainWindow::startParsingAis()
     }
     else if( inputChoice == "Terrestrial AIS Log")
     {
-        if(outputChoice == "Tab-Seperated Files")
+		AisFlatFileInputSource aisInputSource(filename);
+
+		if(outputChoice == "Tab-Seperated Files")
         {
-            pointParser<AisFlatFileInputSource, AisTsvWriter, AisMsisSentenceParser>();
+            flatfileParser<AisTsvWriter, AisMsisSentenceParser>(aisInputSource, filename, messagesPerFile);
         }
 		else if(outputChoice == "Comma-Seperated Files")
         {
-            pointParser<AisFlatFileInputSource, AisCsvWriter, AisMsisSentenceParser>();
+			flatfileParser<AisCsvWriter, AisMsisSentenceParser>(aisInputSource, filename, messagesPerFile);
         }
 		else if(outputChoice == "PostgreSQL Database")
         {
-            databaseParser<AisFlatFileInputSource, AisPostgreSqlDatabaseWriter, AisMsisSentenceParser>();
+            databaseParser<AisPostgreSqlDatabaseWriter, AisMsisSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, "");
         }
         else if(outputChoice == "MySql Database")
         {
-            databaseParser<AisFlatFileInputSource, AisMySqlDatabaseWriter, AisMsisSentenceParser>();
+            databaseParser<AisMySqlDatabaseWriter, AisMsisSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, "");
         }
         else if(outputChoice == "Oracle Database")
         {
-            databaseParser<AisFlatFileInputSource, AisDatabaseWriter, AisMsisSentenceParser>();
+            databaseParser<AisDatabaseWriter, AisMsisSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, "");
         }
         else if(outputChoice == "KML Placemarks")
         {
-            pointParser<AisFlatFileInputSource, AisKmlPlacemarkWriter, AisMsisSentenceParser>();
+			flatfileParser<AisKmlPlacemarkWriter, AisMsisSentenceParser>(aisInputSource, filename, messagesPerFile);
         }
         else if(outputChoice == "KML Tracks")
         {
-            trackParser<AisFlatFileInputSource, AisKmlTrackWriter, AisMsisSentenceParser>();
+            trackParser<AisKmlTrackWriter, AisMsisSentenceParser>(aisInputSource, filename, messagesPerFile);
         }
         else if(outputChoice == "ESRI Shapefile Points")
         {
-            pointParser<AisFlatFileInputSource, AisShapefilePointWriter, AisMsisSentenceParser>();
+			flatfileParser<AisShapefilePointWriter, AisMsisSentenceParser>(aisInputSource, filename, messagesPerFile);
         }
         else if(outputChoice == "ESRI Shapefile Tracks")
         {
-            trackParser<AisFlatFileInputSource, AisShapefileTrackWriter, AisMsisSentenceParser>();
+            trackParser<AisShapefileTrackWriter, AisMsisSentenceParser>(aisInputSource, filename, messagesPerFile);
         }
         else
         {
@@ -377,41 +392,44 @@ void AisParserMainWindow::startParsingAis()
     }
     else if (inputChoice == "Satellite AIS TCP")
     {
+		filename = "";
+		AisTcpStreamInputSource aisInputSource(ui->inputHostnameLineEdit->text().toStdString(), ui->portSpinBox->text().toStdString());
+
         if(outputChoice == "Tab-Seperated Files")
         {
-            pointParser<AisTcpStreamInputSource, AisTsvWriter, AisSatSentenceParser>();
+			flatfileParser<AisTsvWriter, AisSatSentenceParser>(aisInputSource, filename, messagesPerFile);
         }
 		else if(outputChoice == "Comma-Seperated Files")
         {
-            pointParser<AisTcpStreamInputSource, AisCsvWriter, AisSatSentenceParser>();
+			flatfileParser<AisCsvWriter, AisSatSentenceParser>(aisInputSource, filename, messagesPerFile);
         }
 		else if(outputChoice == "PostgreSQL Database")
         {
-            databaseParser<AisTcpStreamInputSource, AisPostgreSqlDatabaseWriter, AisSatSentenceParser>();
+            databaseParser<AisPostgreSqlDatabaseWriter, AisSatSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, "");
         }
         else if(outputChoice == "MySql Database")
         {
-            databaseParser<AisTcpStreamInputSource, AisMySqlDatabaseWriter, AisSatSentenceParser>();
+            databaseParser<AisMySqlDatabaseWriter, AisSatSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, "");
         }
         else if(outputChoice == "Oracle Database")
         {
-            databaseParser<AisTcpStreamInputSource, AisDatabaseWriter, AisSatSentenceParser>();
+            databaseParser<AisDatabaseWriter, AisSatSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, "");
         }
         else if(outputChoice == "KML Placemarks")
         {
-            pointParser<AisTcpStreamInputSource, AisKmlPlacemarkWriter, AisSatSentenceParser>();
+			flatfileParser<AisKmlPlacemarkWriter, AisSatSentenceParser>(aisInputSource, filename, messagesPerFile);
         }
         else if(outputChoice == "KML Tracks")
         {
-            trackParser<AisTcpStreamInputSource, AisKmlTrackWriter, AisSatSentenceParser>();
+            trackParser<AisKmlTrackWriter, AisSatSentenceParser>(aisInputSource, filename, messagesPerFile);
         }
         else if(outputChoice == "ESRI Shapefile Points")
         {
-            pointParser<AisTcpStreamInputSource, AisShapefilePointWriter, AisSatSentenceParser>();
+			flatfileParser<AisShapefilePointWriter, AisSatSentenceParser>(aisInputSource, filename, messagesPerFile);
         }
         else if(outputChoice == "ESRI Shapefile Tracks")
         {
-            trackParser<AisTcpStreamInputSource, AisShapefileTrackWriter, AisSatSentenceParser>();
+            trackParser<AisShapefileTrackWriter, AisSatSentenceParser>(aisInputSource, filename, messagesPerFile);
         }
         else
         {
@@ -423,41 +441,44 @@ void AisParserMainWindow::startParsingAis()
     }
     else if (inputChoice == "Terrestrial AIS TCP")
     {
+		filename = "";
+		AisTcpStreamInputSource aisInputSource(ui->inputHostnameLineEdit->text().toStdString(), ui->portSpinBox->text().toStdString());
+
         if(outputChoice == "Tab-Seperated Files")
         {
-            pointParser<AisTcpStreamInputSource, AisTsvWriter, AisMsisSentenceParser>();
+			flatfileParser<AisTsvWriter, AisMsisSentenceParser>(aisInputSource, filename, messagesPerFile);
         }
 		else if(outputChoice == "Comma-Seperated Files")
         {
-            pointParser<AisTcpStreamInputSource, AisCsvWriter, AisMsisSentenceParser>();
+			flatfileParser<AisCsvWriter, AisMsisSentenceParser>(aisInputSource, filename, messagesPerFile);
         }
 		else if(outputChoice == "PostgreSQL Database")
         {
-            databaseParser<AisTcpStreamInputSource, AisPostgreSqlDatabaseWriter, AisMsisSentenceParser>();
+            databaseParser<AisPostgreSqlDatabaseWriter, AisMsisSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, "");
         }
         else if(outputChoice == "MySql Database")
         {
-            databaseParser<AisTcpStreamInputSource, AisMySqlDatabaseWriter, AisMsisSentenceParser>();
+            databaseParser<AisMySqlDatabaseWriter, AisMsisSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, "");
         }
         else if(outputChoice == "Oracle Database")
         {
-            databaseParser<AisTcpStreamInputSource, AisDatabaseWriter, AisMsisSentenceParser>();
+            databaseParser<AisDatabaseWriter, AisMsisSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, "");
         }
         else if(outputChoice == "KML Placemarks")
         {
-            pointParser<AisTcpStreamInputSource, AisKmlPlacemarkWriter, AisMsisSentenceParser>();
+			flatfileParser<AisKmlPlacemarkWriter, AisMsisSentenceParser>(aisInputSource, filename, messagesPerFile);
         }
         else if(outputChoice == "KML Tracks")
         {
-            trackParser<AisTcpStreamInputSource, AisKmlTrackWriter, AisMsisSentenceParser>();
+            trackParser<AisKmlTrackWriter, AisMsisSentenceParser>(aisInputSource, filename, messagesPerFile);
         }
         else if(outputChoice == "ESRI Shapefile Points")
         {
-            pointParser<AisTcpStreamInputSource, AisShapefilePointWriter, AisMsisSentenceParser>();
+			flatfileParser<AisShapefilePointWriter, AisMsisSentenceParser>(aisInputSource, filename, messagesPerFile);
         }
         else if(outputChoice == "ESRI Shapefile Tracks")
         {
-            trackParser<AisTcpStreamInputSource, AisShapefileTrackWriter, AisMsisSentenceParser>();
+            trackParser<AisShapefileTrackWriter, AisMsisSentenceParser>(aisInputSource, filename, messagesPerFile);
         }
         else
         {
@@ -503,303 +524,303 @@ void AisParserMainWindow::updateProgress(unsigned int progress, QString message)
     }
 }
 
-template<class InputType, class OutputType, class AisSentenceParserType>
-int AisParserMainWindow::pointParser()
-{
-    QString statusMessage("Parsing AIS point-by-point...");
-    ui->statusbar->showMessage(statusMessage);
-    string inputType = ui->inputTypeComboBox->currentText().toStdString();
-    std::string filename;
-    if(inputType == "Satellite AIS TCP" || inputType == "Terrestrial AIS TCP")
-    {
-        filename = ui->hostnameLineEdit->text().toStdString() + ":" + boost::lexical_cast<std::string>(ui->portSpinBox->value());
-    }
-    else
-    {
-        filename = ui->filenameLineEdit->displayText().toStdString();
-    }
-    boost::timer::auto_cpu_timer timer;
-
-    unsigned int messagesPerFile = ui->messagesPerFileSpinBox->value();
-
-    //Define input class (an AisInputSource)
-    //STEPX: choose the correct type of input source
-    InputType aisInputSource(filename);
-
-    unsigned int partition = 0;
-    unsigned int progress = 1;
-
-    while(aisInputSource.isReady())
-    {
-
-        //Define output class (an AisWriter)
-        //STEPX: choose the correct type of output source
-        QFileInfo qfileinfo(filename.c_str());
-        std::string fileSuffix = qfileinfo.completeSuffix().toStdString();
-        std::string inputFilename = ui->outputDirectoryLineEdit->text().toStdString() + "/" + fileSuffix + ".p" + boost::lexical_cast<string>(partition++);
-        OutputType aisWriter(inputFilename);
-
-        if(!aisWriter.isReady())
-        {
-            aisDebug("AisWriter is not ready");
-            return -1;
-        }
-
-        for(unsigned int messageCount = 0; ((messagesPerFile == 0) || (messageCount < messagesPerFile)) && (aisInputSource.isReady()) && m_continueParsing; messageCount++)
-        {
-            updateProgress(progress++, statusMessage);
-
-            //load the next sentence from the AIS input to the parser
-            //STEPX: choose the correct type of sentence parser
-            AisSentenceParserType aisSentenceParser(aisInputSource.getNextSentence());
-            AisMessageParser aisMessageParser;
-
-            if(aisSentenceParser.isMessageValid())
-            {
-                //This check is to make sure that if the first sentence of the message
-                //was bad we won't read the second sentence and parse it as a new message
-                if(aisSentenceParser.getSentenceNumber()==1)
-                {
-                    aisMessageParser.addData(aisSentenceParser.getData());
-                    //if the current sentence is part of a multipart message
-                    //grab the next message until you have them all, or message is invalid
-                    try
-                    {
-                        while(aisSentenceParser.getSentenceNumber() < aisSentenceParser.getNumberOfSentences())
-                        {
-                            aisSentenceParser.setSentence(aisInputSource.getNextSentence());
-                            if(aisSentenceParser.isMessageValid()){
-                                aisMessageParser.addData(aisSentenceParser.getData());
-                            }
-                            else
-                            {
-                                //aisDebug("Invalid multipart message:\n" + aisSentenceParser.getCurrentSentence());
-                                throw std::runtime_error("Invalid multipart message");
-                            }
-                        }
-
-                        AisMessage aisMessage = aisMessageParser.parseMessage();
-                        //add time from ais sentence to the ais message
-                        aisMessage.setDATETIME(aisSentenceParser.getTimestamp());
-                        //add streamid from ais sentence to the ais message
-                        aisMessage.setSTREAMID(aisSentenceParser.getStreamId());
-
-                        aisWriter.writeEntry(aisMessage);
-                    }
-                    catch(exception &e)
-                    {
-                        cerr << e.what() << endl;
-                    }
-                }
-                else
-                {
-                    aisDebug("First sentence of message was invalid/not receieved.\nSkipping the rest of the sentences of this message");
-                    continue;
-                }
-            }
-            else
-            {
-                //aisDebug("Invalid message:\n" + aisSentenceParser.getCurrentSentence());
-            }
-        }
-    }
-    ui->statusbar->showMessage("Done parsing AIS...");
-    return 0;
-}
-
-
-template<class InputType, class OutputType, class AisSentenceParserType>
-int AisParserMainWindow::trackParser()
-{
-    QString statusMessage("Parsing AIS into tracks...");
-    ui->statusbar->showMessage(statusMessage);
-    boost::timer::auto_cpu_timer timer;
-    string filename;
-    string inputType = ui->inputTypeComboBox->currentText().toStdString();
-    if(inputType == "Satellite AIS TCP" || inputType == "Terrestrial AIS TCP")
-    {
-        filename = ui->hostnameLineEdit->text().toStdString() + ":" + boost::lexical_cast<std::string>(ui->portSpinBox->value());
-    }
-    else
-    {
-        filename = ui->filenameLineEdit->displayText().toStdString();
-    }
-
-    unsigned int tracksPerFile = ui->messagesPerFileSpinBox->value();
-    unsigned int progress = 1;
-
-    //Define input class (an AisInputSource)
-    //STEPX: choose the correct type of input source
-    InputType aisInputSource(filename);
-
-    QFileInfo qfileinfo(filename.c_str());
-    std::string fileSuffix = qfileinfo.completeSuffix().toStdString();
-    std::string inputFilename = ui->outputDirectoryLineEdit->text().toStdString() + "/" + fileSuffix;
-    OutputType aisWriter(inputFilename, tracksPerFile);
-
-    while(aisInputSource.isReady())
-    {
-        while(aisInputSource.isReady() && m_continueParsing)
-        {
-            updateProgress(progress++, statusMessage);
-            //load the next sentence from the AIS input to the parser
-            //STEPX: choose the correct type of sentence parser
-            AisSentenceParserType aisSentenceParser(aisInputSource.getNextSentence());
-            AisMessageParser aisMessageParser;
-
-            if(aisSentenceParser.isMessageValid())
-            {
-                //This check is to make sure that if the first sentence of the message
-                //was bad we won't read the second sentence and parse it as a new message
-                if(aisSentenceParser.getSentenceNumber()==1)
-                {
-                    aisMessageParser.addData(aisSentenceParser.getData());
-                    //if the current sentence is part of a multipart message
-                    //grab the next message until you have them all, or message is invalid
-                    try
-                    {
-                        while(aisSentenceParser.getSentenceNumber() < aisSentenceParser.getNumberOfSentences())
-                        {
-                            aisSentenceParser.setSentence(aisInputSource.getNextSentence());
-                            if(aisSentenceParser.isMessageValid()){
-                                aisMessageParser.addData(aisSentenceParser.getData());
-                            }
-                            else
-                            {
-                                //aisDebug("Invalid multipart message:\n" + aisSentenceParser.getCurrentSentence());
-                                throw std::runtime_error("Invalid multipart message");
-                            }
-                        }
-
-                        AisMessage aisMessage = aisMessageParser.parseMessage();
-                        //add time from ais sentence to the ais message
-                        aisMessage.setDATETIME(aisSentenceParser.getTimestamp());
-                        //add streamid from ais sentence to the ais message
-                        aisMessage.setSTREAMID(aisSentenceParser.getStreamId());
-                        //aisWriter.writeEntry(aisMessage);
-                        aisWriter.writeEntry(aisMessage);
-                    }
-                    catch(exception &e)
-                    {
-                        cerr << e.what() << endl;
-                    }
-                }
-                else
-                {
-                    aisDebug("First sentence of message was invalid/not receieved.\nSkipping the rest of the sentences of this message");
-                    continue;
-                }
-            }
-            else
-            {
-                //aisDebug("Invalid message:\n" + aisSentenceParser.getCurrentSentence());
-            }
-        }
-    }
-
-    ui->statusbar->showMessage("Writing AIS tracks to file...");
-    aisWriter.writeToFile();
-    ui->statusbar->showMessage("Done parsing AIS...");
-    return 0;
-}
-
-template<class InputType, class OutputType, class AisSentenceParserType>
-int AisParserMainWindow::databaseParser()
-{
-    QString statusMessage("Parsing AIS into a database...");
-    ui->statusbar->showMessage(statusMessage);
-    boost::timer::auto_cpu_timer timer;
-    string filename;
-    string inputType = ui->inputTypeComboBox->currentText().toStdString();
-    if(inputType == "Satellite AIS TCP" || inputType == "Terrestrial AIS TCP")
-    {
-        filename = ui->hostnameLineEdit->text().toStdString() + ":" + boost::lexical_cast<std::string>(ui->portSpinBox->value());
-    }
-    else
-    {
-        filename = ui->filenameLineEdit->displayText().toStdString();
-    }
-
-    string db_user = ui->usernameLineEdit->text().toStdString();
-    string db_pass = ui->passwordLineEdit->text().toStdString();
-    string db_host = ui->hostnameLineEdit->text().toStdString();
-    string db_name = ui->databaseNameLineEdit->text().toStdString();
-    string db_table = ui->tableNameLineEdit->text().toStdString();
-    int db_numIterations = ui->numIterationsSpinBox->value();
-
-    //Define input class (an AisInputSource)
-    //STEPX: choose the correct type of input source
-    InputType aisInputSource(filename);
-
-
-    //Define output class (an AisWriter)
-    //STEPX: choose the correct type of output source
-    OutputType aisWriter(db_user, db_pass, db_host, db_name, db_table, db_numIterations);
-
-    unsigned int progress = 1;
-    if(!aisWriter.isReady())
-    {
-        aisDebug("AisWriter is not ready");
-         ui->statusbar->showMessage("Error parsing AIS...", 5000);
-        return -1;
-    }
-
-    while(aisInputSource.isReady())
-    {
-        updateProgress(progress++, statusMessage);
-        //load the next sentence from the AIS input to the parser
-        //STEPX: choose the correct type of sentence parser
-        AisSentenceParserType aisSentenceParser(aisInputSource.getNextSentence());
-        AisMessageParser aisMessageParser;
-
-        if(aisSentenceParser.isMessageValid())
-        {
-            //This check is to make sure that if the first sentence of the message
-            //was bad we won't read the second sentence and parse it as a new message
-            if(aisSentenceParser.getSentenceNumber()==1)
-            {
-                aisMessageParser.addData(aisSentenceParser.getData());
-                //if the current sentence is part of a multipart message
-                //grab the next message until you have them all, or message is invalid
-                try
-                {
-                    while(aisSentenceParser.getSentenceNumber() < aisSentenceParser.getNumberOfSentences())
-                    {
-                        aisSentenceParser.setSentence(aisInputSource.getNextSentence());
-                        if(aisSentenceParser.isMessageValid()){
-                            aisMessageParser.addData(aisSentenceParser.getData());
-                        }
-                        else
-                        {
-                            //aisDebug("Invalid multipart message:\n" + aisSentenceParser.getCurrentSentence());
-                            throw std::runtime_error("Invalid multipart message");
-                        }
-                    }
-
-                    AisMessage aisMessage = aisMessageParser.parseMessage();
-                    //add time from ais sentence to the ais message
-                    aisMessage.setDATETIME(aisSentenceParser.getTimestamp());
-                    //add streamid from ais sentence to the ais message
-                    aisMessage.setSTREAMID(aisSentenceParser.getStreamId());
-
-                    aisWriter.writeEntry(aisMessage);
-                }
-                catch(exception &e)
-                {
-                    cerr << e.what() << endl;
-                }
-            }
-            else
-            {
-                aisDebug("First sentence of message was invalid/not receieved.\nSkipping the rest of the sentences of this message");
-                continue;
-            }
-        }
-        else
-        {
-            //aisDebug("Invalid message:\n" + aisSentenceParser.getCurrentSentence());
-        }
-    }
-    ui->statusbar->showMessage("Done parsing AIS...");
-    return 0;
-}
+//template<class InputType, class OutputType, class AisSentenceParserType>
+//int AisParserMainWindow::flatfileParser()
+//{
+//    QString statusMessage("Parsing AIS point-by-point...");
+//    ui->statusbar->showMessage(statusMessage);
+//    string inputType = ui->inputTypeComboBox->currentText().toStdString();
+//    std::string filename;
+//    if(inputType == "Satellite AIS TCP" || inputType == "Terrestrial AIS TCP")
+//    {
+//        filename = ui->hostnameLineEdit->text().toStdString() + ":" + boost::lexical_cast<std::string>(ui->portSpinBox->value());
+//    }
+//    else
+//    {
+//        filename = ui->filenameLineEdit->displayText().toStdString();
+//    }
+//    boost::timer::auto_cpu_timer timer;
+//
+//    unsigned int messagesPerFile = ui->messagesPerFileSpinBox->value();
+//
+//    //Define input class (an AisInputSource)
+//    //STEPX: choose the correct type of input source
+//    InputType aisInputSource(filename);
+//
+//    unsigned int partition = 0;
+//    unsigned int progress = 1;
+//
+//    while(aisInputSource.isReady())
+//    {
+//
+//        //Define output class (an AisWriter)
+//        //STEPX: choose the correct type of output source
+//        QFileInfo qfileinfo(filename.c_str());
+//        std::string fileSuffix = qfileinfo.completeSuffix().toStdString();
+//        std::string inputFilename = ui->outputDirectoryLineEdit->text().toStdString() + "/" + fileSuffix + ".p" + boost::lexical_cast<string>(partition++);
+//        OutputType aisWriter(inputFilename);
+//
+//        if(!aisWriter.isReady())
+//        {
+//            aisDebug("AisWriter is not ready");
+//            return -1;
+//        }
+//
+//        for(unsigned int messageCount = 0; ((messagesPerFile == 0) || (messageCount < messagesPerFile)) && (aisInputSource.isReady()) && m_continueParsing; messageCount++)
+//        {
+//            updateProgress(progress++, statusMessage);
+//
+//            //load the next sentence from the AIS input to the parser
+//            //STEPX: choose the correct type of sentence parser
+//            AisSentenceParserType aisSentenceParser(aisInputSource.getNextSentence());
+//            AisMessageParser aisMessageParser;
+//
+//            if(aisSentenceParser.isMessageValid())
+//            {
+//                //This check is to make sure that if the first sentence of the message
+//                //was bad we won't read the second sentence and parse it as a new message
+//                if(aisSentenceParser.getSentenceNumber()==1)
+//                {
+//                    aisMessageParser.addData(aisSentenceParser.getData());
+//                    //if the current sentence is part of a multipart message
+//                    //grab the next message until you have them all, or message is invalid
+//                    try
+//                    {
+//                        while(aisSentenceParser.getSentenceNumber() < aisSentenceParser.getNumberOfSentences())
+//                        {
+//                            aisSentenceParser.setSentence(aisInputSource.getNextSentence());
+//                            if(aisSentenceParser.isMessageValid()){
+//                                aisMessageParser.addData(aisSentenceParser.getData());
+//                            }
+//                            else
+//                            {
+//                                //aisDebug("Invalid multipart message:\n" + aisSentenceParser.getCurrentSentence());
+//                                throw std::runtime_error("Invalid multipart message");
+//                            }
+//                        }
+//
+//                        AisMessage aisMessage = aisMessageParser.parseMessage();
+//                        //add time from ais sentence to the ais message
+//                        aisMessage.setDATETIME(aisSentenceParser.getTimestamp());
+//                        //add streamid from ais sentence to the ais message
+//                        aisMessage.setSTREAMID(aisSentenceParser.getStreamId());
+//
+//                        aisWriter.writeEntry(aisMessage);
+//                    }
+//                    catch(exception &e)
+//                    {
+//                        cerr << e.what() << endl;
+//                    }
+//                }
+//                else
+//                {
+//                    aisDebug("First sentence of message was invalid/not receieved.\nSkipping the rest of the sentences of this message");
+//                    continue;
+//                }
+//            }
+//            else
+//            {
+//                //aisDebug("Invalid message:\n" + aisSentenceParser.getCurrentSentence());
+//            }
+//        }
+//    }
+//    ui->statusbar->showMessage("Done parsing AIS...");
+//    return 0;
+//}
+//
+//
+//template<class InputType, class OutputType, class AisSentenceParserType>
+//int AisParserMainWindow::trackParser()
+//{
+//    QString statusMessage("Parsing AIS into tracks...");
+//    ui->statusbar->showMessage(statusMessage);
+//    boost::timer::auto_cpu_timer timer;
+//    string filename;
+//    string inputType = ui->inputTypeComboBox->currentText().toStdString();
+//    if(inputType == "Satellite AIS TCP" || inputType == "Terrestrial AIS TCP")
+//    {
+//        filename = ui->hostnameLineEdit->text().toStdString() + ":" + boost::lexical_cast<std::string>(ui->portSpinBox->value());
+//    }
+//    else
+//    {
+//        filename = ui->filenameLineEdit->displayText().toStdString();
+//    }
+//
+//    unsigned int tracksPerFile = ui->messagesPerFileSpinBox->value();
+//    unsigned int progress = 1;
+//
+//    //Define input class (an AisInputSource)
+//    //STEPX: choose the correct type of input source
+//    InputType aisInputSource(filename);
+//
+//    QFileInfo qfileinfo(filename.c_str());
+//    std::string fileSuffix = qfileinfo.completeSuffix().toStdString();
+//    std::string inputFilename = ui->outputDirectoryLineEdit->text().toStdString() + "/" + fileSuffix;
+//    OutputType aisWriter(inputFilename, tracksPerFile);
+//
+//    while(aisInputSource.isReady())
+//    {
+//        while(aisInputSource.isReady() && m_continueParsing)
+//        {
+//            updateProgress(progress++, statusMessage);
+//            //load the next sentence from the AIS input to the parser
+//            //STEPX: choose the correct type of sentence parser
+//            AisSentenceParserType aisSentenceParser(aisInputSource.getNextSentence());
+//            AisMessageParser aisMessageParser;
+//
+//            if(aisSentenceParser.isMessageValid())
+//            {
+//                //This check is to make sure that if the first sentence of the message
+//                //was bad we won't read the second sentence and parse it as a new message
+//                if(aisSentenceParser.getSentenceNumber()==1)
+//                {
+//                    aisMessageParser.addData(aisSentenceParser.getData());
+//                    //if the current sentence is part of a multipart message
+//                    //grab the next message until you have them all, or message is invalid
+//                    try
+//                    {
+//                        while(aisSentenceParser.getSentenceNumber() < aisSentenceParser.getNumberOfSentences())
+//                        {
+//                            aisSentenceParser.setSentence(aisInputSource.getNextSentence());
+//                            if(aisSentenceParser.isMessageValid()){
+//                                aisMessageParser.addData(aisSentenceParser.getData());
+//                            }
+//                            else
+//                            {
+//                                //aisDebug("Invalid multipart message:\n" + aisSentenceParser.getCurrentSentence());
+//                                throw std::runtime_error("Invalid multipart message");
+//                            }
+//                        }
+//
+//                        AisMessage aisMessage = aisMessageParser.parseMessage();
+//                        //add time from ais sentence to the ais message
+//                        aisMessage.setDATETIME(aisSentenceParser.getTimestamp());
+//                        //add streamid from ais sentence to the ais message
+//                        aisMessage.setSTREAMID(aisSentenceParser.getStreamId());
+//                        //aisWriter.writeEntry(aisMessage);
+//                        aisWriter.writeEntry(aisMessage);
+//                    }
+//                    catch(exception &e)
+//                    {
+//                        cerr << e.what() << endl;
+//                    }
+//                }
+//                else
+//                {
+//                    aisDebug("First sentence of message was invalid/not receieved.\nSkipping the rest of the sentences of this message");
+//                    continue;
+//                }
+//            }
+//            else
+//            {
+//                //aisDebug("Invalid message:\n" + aisSentenceParser.getCurrentSentence());
+//            }
+//        }
+//    }
+//
+//    ui->statusbar->showMessage("Writing AIS tracks to file...");
+//    aisWriter.writeToFile();
+//    ui->statusbar->showMessage("Done parsing AIS...");
+//    return 0;
+//}
+//
+//template<class InputType, class OutputType, class AisSentenceParserType>
+//int AisParserMainWindow::databaseParser()
+//{
+//    QString statusMessage("Parsing AIS into a database...");
+//    ui->statusbar->showMessage(statusMessage);
+//    boost::timer::auto_cpu_timer timer;
+//    string filename;
+//    string inputType = ui->inputTypeComboBox->currentText().toStdString();
+//    if(inputType == "Satellite AIS TCP" || inputType == "Terrestrial AIS TCP")
+//    {
+//        filename = ui->hostnameLineEdit->text().toStdString() + ":" + boost::lexical_cast<std::string>(ui->portSpinBox->value());
+//    }
+//    else
+//    {
+//        filename = ui->filenameLineEdit->displayText().toStdString();
+//    }
+//
+//    string db_user = ui->usernameLineEdit->text().toStdString();
+//    string db_pass = ui->passwordLineEdit->text().toStdString();
+//    string db_host = ui->hostnameLineEdit->text().toStdString();
+//    string db_name = ui->databaseNameLineEdit->text().toStdString();
+//    string db_table = ui->tableNameLineEdit->text().toStdString();
+//    int db_numIterations = ui->numIterationsSpinBox->value();
+//
+//    //Define input class (an AisInputSource)
+//    //STEPX: choose the correct type of input source
+//    InputType aisInputSource(filename);
+//
+//
+//    //Define output class (an AisWriter)
+//    //STEPX: choose the correct type of output source
+//    OutputType aisWriter(db_user, db_pass, db_host, db_name, db_table, db_numIterations);
+//
+//    unsigned int progress = 1;
+//    if(!aisWriter.isReady())
+//    {
+//        aisDebug("AisWriter is not ready");
+//         ui->statusbar->showMessage("Error parsing AIS...", 5000);
+//        return -1;
+//    }
+//
+//    while(aisInputSource.isReady())
+//    {
+//        updateProgress(progress++, statusMessage);
+//        //load the next sentence from the AIS input to the parser
+//        //STEPX: choose the correct type of sentence parser
+//        AisSentenceParserType aisSentenceParser(aisInputSource.getNextSentence());
+//        AisMessageParser aisMessageParser;
+//
+//        if(aisSentenceParser.isMessageValid())
+//        {
+//            //This check is to make sure that if the first sentence of the message
+//            //was bad we won't read the second sentence and parse it as a new message
+//            if(aisSentenceParser.getSentenceNumber()==1)
+//            {
+//                aisMessageParser.addData(aisSentenceParser.getData());
+//                //if the current sentence is part of a multipart message
+//                //grab the next message until you have them all, or message is invalid
+//                try
+//                {
+//                    while(aisSentenceParser.getSentenceNumber() < aisSentenceParser.getNumberOfSentences())
+//                    {
+//                        aisSentenceParser.setSentence(aisInputSource.getNextSentence());
+//                        if(aisSentenceParser.isMessageValid()){
+//                            aisMessageParser.addData(aisSentenceParser.getData());
+//                        }
+//                        else
+//                        {
+//                            //aisDebug("Invalid multipart message:\n" + aisSentenceParser.getCurrentSentence());
+//                            throw std::runtime_error("Invalid multipart message");
+//                        }
+//                    }
+//
+//                    AisMessage aisMessage = aisMessageParser.parseMessage();
+//                    //add time from ais sentence to the ais message
+//                    aisMessage.setDATETIME(aisSentenceParser.getTimestamp());
+//                    //add streamid from ais sentence to the ais message
+//                    aisMessage.setSTREAMID(aisSentenceParser.getStreamId());
+//
+//                    aisWriter.writeEntry(aisMessage);
+//                }
+//                catch(exception &e)
+//                {
+//                    cerr << e.what() << endl;
+//                }
+//            }
+//            else
+//            {
+//                aisDebug("First sentence of message was invalid/not receieved.\nSkipping the rest of the sentences of this message");
+//                continue;
+//            }
+//        }
+//        else
+//        {
+//            //aisDebug("Invalid message:\n" + aisSentenceParser.getCurrentSentence());
+//        }
+//    }
+//    ui->statusbar->showMessage("Done parsing AIS...");
+//    return 0;
+//}
