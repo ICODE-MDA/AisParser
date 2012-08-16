@@ -39,7 +39,15 @@ public:
 		if (m_parsedSentence.size() == 8 || m_parsedSentence.size() == 9 || m_parsedSentence.size() == 10)
 		{
 			if (m_parsedSentence[7].compare(0,1,"r") == 0)
+			{
 				hasStreamID = true;
+			}
+			if (m_parsedSentence[7].compare(0,8,"rORBCOMM") == 0 || m_parsedSentence[7].compare(0,11,"rEXACTEARTH") == 0)
+			{
+				//Skip satellite entries in terrestrial files
+				//aisDebug("Skipping satellite message from " + m_parsedSentence[7] + " source.\n" + m_fullSentence);
+				return false;
+			}
 
 			try
 			{
