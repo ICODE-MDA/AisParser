@@ -78,6 +78,8 @@ void AisParserMainWindow::writeSettings()
 	settings.setValue("database_hostname", ui->hostnameLineEdit->text());
 	settings.setValue("database_name", ui->databaseNameLineEdit->text());
 	settings.setValue("database_table", ui->tableNameLineEdit->text());
+	settings.setValue("enable_static_table", ui->staticTableCheckBox->isChecked());
+	settings.setValue("static_database_table", ui->staticTableNameLineEdit->text());
 	settings.setValue("database_numiterations", ui->numIterationsSpinBox->value());
 	settings.endGroup();
 }
@@ -101,6 +103,8 @@ void AisParserMainWindow::readSettings()
 	ui->hostnameLineEdit->setText(settings.value("database_hostname", "").toString());
 	ui->databaseNameLineEdit->setText(settings.value("database_name", "").toString());
 	ui->tableNameLineEdit->setText(settings.value("database_table","").toString());
+	ui->staticTableCheckBox->setChecked(settings.value("enable_static_table", "").toBool());
+	ui->staticTableNameLineEdit->setText(settings.value("static_database_table","").toString());
 	ui->numIterationsSpinBox->setValue(settings.value("database_numiterations", 0).toInt());
 	//end settings
 	settings.endGroup();
@@ -211,6 +215,11 @@ void AisParserMainWindow::manageOutputVisibility(QString outputChoice)
     }
 }
 
+void AisParserMainWindow::manageStaticVisibility(int choice)
+{
+	ui->staticTableNameLineEdit->setEnabled((bool)choice);
+}
+
 bool AisParserMainWindow::validateDatabaseArguments()
 {
     return true;
@@ -297,7 +306,15 @@ void AisParserMainWindow::startParsingAis()
 	std::string db_name = ui->databaseNameLineEdit->text().toStdString();
 	std::string db_table = ui->tableNameLineEdit->text().toStdString();
 	std::string db_numIterations = ui->numIterationsSpinBox->text().toStdString();
-
+	
+	//Handle push to separate static table
+	bool db_staticEnable = ui->staticTableCheckBox->isChecked();
+	std::string db_static_table;
+	if (db_staticEnable == true)
+		db_static_table = ui->staticTableNameLineEdit->text().toStdString();
+	else
+		db_static_table = "";
+	
     if( inputChoice == "Satellite AIS Log")
     {
 		AisFlatFileInputSource aisInputSource(filename);
@@ -312,15 +329,15 @@ void AisParserMainWindow::startParsingAis()
         }
 		else if(outputChoice == "PostgreSQL Database")
         {
-            databaseParser<AisPostgreSqlDatabaseWriter, AisSatSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, "");
+            databaseParser<AisPostgreSqlDatabaseWriter, AisSatSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, db_static_table);
         }
         else if(outputChoice == "MySql Database")
         {
-            databaseParser<AisMySqlDatabaseWriter, AisSatSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, "");
+            databaseParser<AisMySqlDatabaseWriter, AisSatSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, db_static_table);
         }
         else if(outputChoice == "Oracle Database")
         {
-            databaseParser<AisDatabaseWriter, AisSatSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, "");
+            databaseParser<AisDatabaseWriter, AisSatSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, db_static_table);
         }
         else if(outputChoice == "KML Placemarks")
         {
@@ -360,15 +377,15 @@ void AisParserMainWindow::startParsingAis()
         }
 		else if(outputChoice == "PostgreSQL Database")
         {
-            databaseParser<AisPostgreSqlDatabaseWriter, AisMsisSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, "");
+            databaseParser<AisPostgreSqlDatabaseWriter, AisMsisSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, db_static_table);
         }
         else if(outputChoice == "MySql Database")
         {
-            databaseParser<AisMySqlDatabaseWriter, AisMsisSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, "");
+            databaseParser<AisMySqlDatabaseWriter, AisMsisSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, db_static_table);
         }
         else if(outputChoice == "Oracle Database")
         {
-            databaseParser<AisDatabaseWriter, AisMsisSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, "");
+            databaseParser<AisDatabaseWriter, AisMsisSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, db_static_table);
         }
         else if(outputChoice == "KML Placemarks")
         {
@@ -409,15 +426,15 @@ void AisParserMainWindow::startParsingAis()
         }
 		else if(outputChoice == "PostgreSQL Database")
         {
-            databaseParser<AisPostgreSqlDatabaseWriter, AisSatSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, "");
+            databaseParser<AisPostgreSqlDatabaseWriter, AisSatSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, db_static_table);
         }
         else if(outputChoice == "MySql Database")
         {
-            databaseParser<AisMySqlDatabaseWriter, AisSatSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, "");
+            databaseParser<AisMySqlDatabaseWriter, AisSatSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, db_static_table);
         }
         else if(outputChoice == "Oracle Database")
         {
-            databaseParser<AisDatabaseWriter, AisSatSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, "");
+            databaseParser<AisDatabaseWriter, AisSatSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, db_static_table);
         }
         else if(outputChoice == "KML Placemarks")
         {
@@ -458,15 +475,15 @@ void AisParserMainWindow::startParsingAis()
         }
 		else if(outputChoice == "PostgreSQL Database")
         {
-            databaseParser<AisPostgreSqlDatabaseWriter, AisMsisSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, "");
+            databaseParser<AisPostgreSqlDatabaseWriter, AisMsisSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, db_static_table);
         }
         else if(outputChoice == "MySql Database")
         {
-            databaseParser<AisMySqlDatabaseWriter, AisMsisSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, "");
+            databaseParser<AisMySqlDatabaseWriter, AisMsisSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, db_static_table);
         }
         else if(outputChoice == "Oracle Database")
         {
-            databaseParser<AisDatabaseWriter, AisMsisSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, "");
+            databaseParser<AisDatabaseWriter, AisMsisSentenceParser>(aisInputSource, db_username, db_password, db_hostname, db_name, db_table, db_numIterations, db_static_table);
         }
         else if(outputChoice == "KML Placemarks")
         {

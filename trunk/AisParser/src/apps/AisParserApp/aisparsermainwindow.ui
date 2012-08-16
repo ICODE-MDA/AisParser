@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>800</width>
-    <height>564</height>
+    <height>599</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -203,7 +203,7 @@
       <x>470</x>
       <y>30</y>
       <width>301</width>
-      <height>451</height>
+      <height>481</height>
      </rect>
     </property>
     <property name="acceptDrops">
@@ -249,15 +249,15 @@
       </property>
      </item>
      <item>
-        <property name="text">
-          <string>Comma-Seperated Files</string>
-        </property>
-      </item>
-      <item>
-        <property name="text">
-          <string>PostgreSQL Database</string>
-        </property>
-      </item>
+      <property name="text">
+       <string>Comma-Seperated Files</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>PostgreSQL Database</string>
+      </property>
+     </item>
      <item>
       <property name="text">
        <string>MySql Database</string>
@@ -337,7 +337,7 @@
        <x>10</x>
        <y>140</y>
        <width>241</width>
-       <height>303</height>
+       <height>331</height>
       </rect>
      </property>
      <property name="frameShape">
@@ -409,12 +409,36 @@
       <item>
        <widget class="QLabel" name="tableNameLabel">
         <property name="text">
-         <string>Table Name</string>
+         <string>Dynamic Table Name</string>
         </property>
        </widget>
       </item>
       <item>
        <widget class="QLineEdit" name="tableNameLineEdit">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="staticTableCheckBox">
+        <property name="text">
+         <string>Push static messages to separate table</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="staticTableNameLabel">
+        <property name="text">
+         <string>Static Table Name</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLineEdit" name="staticTableNameLineEdit">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
         <property name="text">
          <string/>
         </property>
@@ -507,7 +531,8 @@
 p, li { white-space: pre-wrap; }
 &lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:'MS Shell Dlg 2'; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;Select an input type and specify the additional options in the Input window. Then select an output type and specify the additional options in the Output window.&lt;/span&gt;&lt;/p&gt;
-&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-size:8pt;&quot;&gt;&lt;br /&gt;&lt;/p&gt;
+&lt;p style=&quot;-qt-paragraph-type:empty; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px; font-size:8pt;&quot;&gt;&lt;/p&gt;
+&lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;&lt;br /&gt;&lt;/span&gt;&lt;/p&gt;
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt; font-weight:600;&quot;&gt;Note:&lt;/span&gt;&lt;/p&gt;
 &lt;p style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt;&quot;&gt;The difference between the satellite AIS and terrestrial AIS logfiles is the number of columns the data has. The satellite AIS data has an extra column of data where the STREAMID is placed that indicates which satellite/vendor provided the posit.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
@@ -542,7 +567,7 @@ p, li { white-space: pre-wrap; }
     <property name="geometry">
      <rect>
       <x>470</x>
-      <y>490</y>
+      <y>520</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -555,7 +580,7 @@ p, li { white-space: pre-wrap; }
     <property name="geometry">
      <rect>
       <x>570</x>
-      <y>490</y>
+      <y>520</y>
       <width>75</width>
       <height>23</height>
      </rect>
@@ -610,6 +635,28 @@ p, li { white-space: pre-wrap; }
    </property>
   </action>
  </widget>
+ <tabstops>
+  <tabstop>instructionTextBrowser</tabstop>
+  <tabstop>inputTypeComboBox</tabstop>
+  <tabstop>filenameLineEdit</tabstop>
+  <tabstop>filenameToolButton</tabstop>
+  <tabstop>inputHostnameLineEdit</tabstop>
+  <tabstop>portSpinBox</tabstop>
+  <tabstop>outputTypeComboBox</tabstop>
+  <tabstop>messagesPerFileSpinBox</tabstop>
+  <tabstop>outputDirectoryLineEdit</tabstop>
+  <tabstop>outputDirectoryToolButton</tabstop>
+  <tabstop>usernameLineEdit</tabstop>
+  <tabstop>passwordLineEdit</tabstop>
+  <tabstop>hostnameLineEdit</tabstop>
+  <tabstop>databaseNameLineEdit</tabstop>
+  <tabstop>tableNameLineEdit</tabstop>
+  <tabstop>staticTableCheckBox</tabstop>
+  <tabstop>staticTableNameLineEdit</tabstop>
+  <tabstop>numIterationsSpinBox</tabstop>
+  <tabstop>startPushButton</tabstop>
+  <tabstop>stopPushButton</tabstop>
+ </tabstops>
  <resources/>
  <connections>
   <connection>
@@ -624,7 +671,7 @@ p, li { white-space: pre-wrap; }
     </hint>
     <hint type="destinationlabel">
      <x>443</x>
-     <y>92</y>
+     <y>93</y>
     </hint>
    </hints>
   </connection>
@@ -636,7 +683,7 @@ p, li { white-space: pre-wrap; }
    <hints>
     <hint type="sourcelabel">
      <x>127</x>
-     <y>343</y>
+     <y>332</y>
     </hint>
     <hint type="destinationlabel">
      <x>146</x>
@@ -652,7 +699,7 @@ p, li { white-space: pre-wrap; }
    <hints>
     <hint type="sourcelabel">
      <x>511</x>
-     <y>522</y>
+     <y>543</y>
     </hint>
     <hint type="destinationlabel">
      <x>439</x>
@@ -668,7 +715,7 @@ p, li { white-space: pre-wrap; }
    <hints>
     <hint type="sourcelabel">
      <x>632</x>
-     <y>524</y>
+     <y>545</y>
     </hint>
     <hint type="destinationlabel">
      <x>667</x>
@@ -684,7 +731,7 @@ p, li { white-space: pre-wrap; }
    <hints>
     <hint type="sourcelabel">
      <x>315</x>
-     <y>398</y>
+     <y>389</y>
     </hint>
     <hint type="destinationlabel">
      <x>424</x>
@@ -708,6 +755,22 @@ p, li { white-space: pre-wrap; }
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>staticTableCheckBox</sender>
+   <signal>stateChanged(int)</signal>
+   <receiver>AisParserMainWindow</receiver>
+   <slot>manageStaticVisibility(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>559</x>
+     <y>419</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>461</x>
+     <y>459</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>startParsingAis()</slot>
@@ -716,5 +779,6 @@ p, li { white-space: pre-wrap; }
   <slot>manageInputVisibility(QString)</slot>
   <slot>fileChooser()</slot>
   <slot>directoryChooser()</slot>
+  <slot>manageStaticVisibility(int)</slot>
  </slots>
 </ui>
