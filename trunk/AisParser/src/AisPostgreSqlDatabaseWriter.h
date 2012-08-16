@@ -99,9 +99,7 @@ public:
 	
 	std::string sanitize(const std::string& in)
 	{
-		std::string output(in);
-		boost::replace_all(output, "'", "''");
-		return output;
+		return m_con->esc(in);
 	}
 
 
@@ -156,6 +154,7 @@ public:
 				{
 					throw std::runtime_error("Could not create PostgreSql Work");
 				}
+		
 				m_work->exec(m_sqlStatement);
 				m_work->commit();
 				m_sqlStatement = string("");
