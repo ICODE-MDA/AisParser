@@ -16,8 +16,8 @@ set oracle_library_dir="D:\libraries\oracle\instantclient-sdk-nt-11.2.0.2.0\lib\
 set mysql_includes="D:\libraries\mysql\v110\include"
 set mysql_library_dir="D:\libraries\mysql\v110\lib"
 
-set postgresql_includes="D:\libraries\libpqxx\v4_0\include"
-set postgresql_library_dir="D:\libraries\libpqxx\v4_0\lib\x86"
+set postgresql_includes="D:\libraries\postgresql\libpqxx\v4_0\include"
+set postgresql_library_dir="D:\libraries\postgresql\libpqxx\v4_0\lib\x86"
 
 set icode_third_party_dir="D:\libraries\icode\3rd-party"
 set oracle_bin_dir=D:\libraries\oracle\instantclient-sdk-nt-11.2.0.2.0\bin

@@ -36,16 +36,16 @@ protected slots:
     void stopParsingAis();
     void displayLicense();
 private:
-    //int foo(AisInputSource* input, AisWriter* output);
     void updateProgress(unsigned int progress, QString message);
-    template<class InputType, class OutputType, class AisSentenceParserType>
-    int pointParser();
 
-    template<class InputType, class OutputType, class AisSentenceParserType>
-    int databaseParser();
+    //template<class InputType, class OutputType, class AisSentenceParserType>
+    //int pointParser();
 
-    template<class InputType, class OutputType, class AisSentenceParserType>
-    int trackParser();
+    //template<class InputType, class OutputType, class AisSentenceParserType>
+    //int databaseParser();
+
+    //template<class InputType, class OutputType, class AisSentenceParserType>
+    //int trackParser();
 
     bool validateArguments();
     bool validateDatabaseArguments();

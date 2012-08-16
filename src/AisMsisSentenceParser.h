@@ -11,6 +11,7 @@
 
 #include <AisSentenceParser.h>
 
+using namespace std;
 /**
 This class parses AIS sentences into a vector
 of strings that can be used in other classes.
