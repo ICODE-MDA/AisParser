@@ -18,25 +18,24 @@ using namespace pqxx;
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
 
+
 /**
 Class for writing AIS messages to an PostgreSql database.
 Declare...check isReady()...writeEntry
 */
 class AisPostgreSqlDatabaseWriter : public AisWriter{
 public:
-	AisPostgreSqlDatabaseWriter(std::string username, std::string password, std::string hostname, std::string databaseName, std::string tableName, int iterations = 100000)
+	AisPostgreSqlDatabaseWriter(std::string username, std::string password, std::string hostname, std::string databaseName, std::string tableName, int iterations = 100000):
+	m_con(static_cast<connection*>(0)),
+		m_currentIteration(1),
+		m_username(username),
+		m_password(password),
+		m_hostname(hostname),
+		m_databaseName(databaseName),
+		m_tableName(tableName),
+		m_iterations(iterations),
+		m_sqlStatement("")
 	{
-		m_con=NULL;
-		m_work=NULL;
-		m_currentIteration = 1;
-		m_username=username;
-		m_password=password;
-		m_hostname = hostname;
-		m_databaseName=databaseName;
-		m_tableName=tableName;
-		m_iterations = iterations;
-		m_sqlStatement = "";
-
 		m_initialized = init();
 	}
 
@@ -48,18 +47,14 @@ public:
 			try
 			{
 				aisDebug("trying to execute update any remaining entries");
-				//execute statement to add any remainign
-				//aisDebug("executing multirow insert start");
+
 				if(m_sqlStatement != "")
 				{
-					m_work = new work(*m_con);
-					if(!m_work)
-					{
-						throw std::runtime_error("Could not create PostgreSql Work");
-					}
-					m_work->exec(m_sqlStatement);
-					m_work->commit();
-					delete m_work;
+					//execute statement to add any remainign
+					//aisDebug("executing multirow insert start");
+					StatementExecutor statementExecutor(m_sqlStatement);
+					m_con->perform(statementExecutor);
+					m_sqlStatement = string("");
 					//aisDebug("executing multirow insert end");
 					//m_sqlPreparedStatement->executeUpdate();
 				}
@@ -83,7 +78,6 @@ public:
 		try
 		{
 			m_con->disconnect();
-			delete m_con;
 		}
 		catch(const exception &e)
 		{
@@ -149,16 +143,9 @@ public:
 				m_currentIteration = 1;
 
 				//aisDebug("executing multirow insert start");
-				m_work = new work(*m_con);
-				if(!m_work)
-				{
-					throw std::runtime_error("Could not create PostgreSql Work");
-				}
-		
-				m_work->exec(m_sqlStatement);
-				m_work->commit();
+				StatementExecutor statementExecutor(m_sqlStatement);
+				m_con->perform(statementExecutor);
 				m_sqlStatement = string("");
-				delete m_work;
 				//aisDebug("executing multirow insert end");
 			}
 			return true;
@@ -185,27 +172,11 @@ private:
 		try
 		{
 			std::string connection_string = "user=" + m_username + " password=" + m_password + " dbname=" + m_databaseName + " hostaddr=" + m_hostname;
-			m_con = new connection(connection_string);
+			m_con = std::shared_ptr<connection>(new connection(connection_string));
 			
 			if(!m_con){
 				throw std::runtime_error("Could not create PostgreSql connection");
 			}
-			
-			//try
-			//{
-			//	m_work = new work(*m_con);
-			//	if(!m_work)
-			//	{
-			//		throw std::runtime_error("Could not create PostgreSql Work");
-			//	}
-			//	m_work->exec("USE " + m_databaseName);
-			//	delete m_work;
-			//}
-			//catch (const exception &e)
-			//{      
-			//	std::cerr << "Statement Execution Error : " << e.what() << std::endl;
-			//	return false;
-			//} 
 
 			try
 			{
@@ -250,11 +221,21 @@ private:
 		{
 			cout << "Connection is not null" << endl;
 		}
-		if(m_work)
-		{
-			cout << "Work is not null" << endl;
-		}
 	}
+
+	class StatementExecutor : public transactor<>
+	{
+		const std::string* m_statement;
+	public:
+		StatementExecutor(const std::string& statement):
+		transactor<>("StatementExecutor"), m_statement(&statement)
+		{}
+
+		void operator()(argument_type &T)
+		{
+			T.exec(*m_statement);
+		}
+	};
 
 	string m_username;
 	string m_password;
@@ -266,8 +247,7 @@ private:
 	bool m_initialized;
 	
 	string m_sqlStatement;
-	connection*  m_con;
-	work* m_work;
+	std::shared_ptr<connection>  m_con;
 };
 
 #endif
