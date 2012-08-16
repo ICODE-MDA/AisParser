@@ -27,8 +27,6 @@ class AisPostgreSqlDatabaseWriter : public AisWriter{
 public:
 	AisPostgreSqlDatabaseWriter(std::string username, std::string password, std::string hostname, std::string databaseName, std::string tableName, int iterations = 100000):
 	m_con(static_cast<pqxx::connection*>(0)),
-		m_work(static_cast<pqxx::work*>(0)),
-		m_pipe(static_cast<pqxx::pipeline*>(0)),
 		m_currentIteration(1),
 		m_username(username),
 		m_password(password),
@@ -52,10 +50,14 @@ public:
 
 				if(m_sqlStatement != "")
 				{
-					m_pipe->insert(m_sqlStatement);
+					//execute statement to add any remainign
+					//aisDebug("executing multirow insert start");
+					StatementExecutor statementExecutor(m_sqlStatement);
+					m_con->perform(statementExecutor);
+					m_sqlStatement = string("");
+					//aisDebug("executing multirow insert end");
+					//m_sqlPreparedStatement->executeUpdate();
 				}
-				m_pipe->complete();
-				m_work->commit();
 			}
 			catch(const exception &e)
 			{
@@ -139,8 +141,12 @@ public:
 			if(m_currentIteration++ == m_iterations || m_iterations <= 0)
 			{
 				m_currentIteration = 1;
-				m_pipe->insert(m_sqlStatement);
+
+				//aisDebug("executing multirow insert start");
+				StatementExecutor statementExecutor(m_sqlStatement);
+				m_con->perform(statementExecutor);
 				m_sqlStatement = string("");
+				//aisDebug("executing multirow insert end");
 			}
 			return true;
 
@@ -174,31 +180,13 @@ private:
 
 			try
 			{
-				m_work = std::shared_ptr<pqxx::work>(new pqxx::work(*m_con));
-			}
-			catch (const exception &e)
-			{      
-				std::cerr << "Work Creation Error : " << e.what() << std::endl;
-				return false;
-			} 
-
-			try
-			{
-				m_pipe = std::shared_ptr<pqxx::pipeline>(new pqxx::pipeline(*m_work));
-			}
-			catch (const exception &e)
-			{      
-				std::cerr << "Pipeline Creation Error : " << e.what() << std::endl;
-				return false;
-			} 
-
-			try
-			{
-				//Using prepared statements was ~ 1.8 times slower than using normal inserts,
-				//and ~5.3 times slower than using multirow inserts
-				//aisDebug("Preparing Query...");
-				//const std::string sql = "INSERT INTO " + m_tableName + " VALUES(DEFAULT, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26)";
-				//m_con->prepare("insert", sql);
+				//m_con->prepare("insert_message", "INSERT INTO " + m_tableName + " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+				
+				
+				//m_sqlPreparedStatement = m_con->prepareStatement("INSERT INTO " + m_tableName + " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+				//if(!m_sqlPreparedStatement){
+				//	throw std::runtime_error("Could not create Mysql sql statement");
+				//}
 				//aisDebug("Query prepared successfully...");
 			}
 			catch (const exception &e)
@@ -235,12 +223,12 @@ private:
 		}
 	}
 
-	class StatementExecutor : public transactor<>
+	class StatementExecutor : public pqxx::transactor<>
 	{
 		const std::string* m_statement;
 	public:
 		StatementExecutor(const std::string& statement):
-		transactor<>("StatementExecutor"), m_statement(&statement)
+		pqxx::transactor<>("StatementExecutor"), m_statement(&statement)
 		{}
 
 		void operator()(argument_type &T)
@@ -248,26 +236,6 @@ private:
 			T.exec(*m_statement);
 		}
 	};
-
-	//class PreparedStatementExecutor : public transactor<>
-	//{
-	//	const AisMessage* m_message;
-	//public:
-	//	PreparedStatementExecutor(const AisMessage& message):
-	//	transactor<>("PreparedStatementExecutor"), m_message(&message)
-	//	{}
-
-	//	void operator()(argument_type &T)
-	//	{
-	//		T.prepared("insert")(m_message->getMESSAGETYPE())(m_message->getMMSI())(m_message->getNAVSTATUS())
-	//			(m_message->getROT())(m_message->getSOG())(m_message->getLON())(m_message->getLAT())(m_message->getCOG())
-	//			(m_message->getTRUE_HEADING())(m_message->getDATETIME())(m_message->getIMO())(m_message->getVESSELNAME())
-	//			(m_message->getVESSELTYPEINT())(m_message->getSHIPLENGTH())(m_message->getSHIPWIDTH())(m_message->getBOW())
-	//			(m_message->getSTERN())(m_message->getPORT())(m_message->getSTARBOARD())(m_message->getDRAUGHT())
-	//			(m_message->getDESTINATION())(m_message->getCALLSIGN())(m_message->getPOSACCURACY())(m_message->getETA())
-	//			(m_message->getPOSFIXTYPE())(m_message->getSTREAMID()).exec();
-	//	}
-	//};
 
 	string m_username;
 	string m_password;
@@ -280,8 +248,6 @@ private:
 	
 	string m_sqlStatement;
 	std::shared_ptr<pqxx::connection>  m_con;
-	std::shared_ptr<pqxx::work> m_work;
-	std::shared_ptr<pqxx::pipeline> m_pipe;
 };
 
 #endif
