@@ -26,6 +26,7 @@ public:
 	*/
 	AisMsisSentenceParser(std::string sentence):AisSentenceParser(sentence)
 	{
+		hasStreamID = false;
 	}
 
 	bool isMessageValid(){
@@ -35,8 +36,11 @@ public:
 			return false;
 		}
 
-		if(m_parsedSentence.size() == 8 || m_parsedSentence.size() == 9 )
+		if (m_parsedSentence.size() == 8 || m_parsedSentence.size() == 9 || m_parsedSentence.size() == 10)
 		{
+			if (m_parsedSentence[7].compare(0,1,"r") == 0)
+				hasStreamID = true;
+
 			try
 			{
 				m_numberOfSentences = boost::lexical_cast<int>(m_parsedSentence[1]);
@@ -68,7 +72,14 @@ public:
 		}
 		else
 		{
-			aisDebug("Message does not have 8 || 9 columns\n" + m_fullSentence);
+			if (m_parsedSentence[3].compare("HEARTBEAT") == 0)
+			{
+				aisDebug("Heartbeat message\n" + m_fullSentence);
+			}
+			else
+			{
+				aisDebug("Message does not have 8 || 9 columns, or has 9 || 10 columns but no stream ID field in column 8 starting with 'r' \n" + m_fullSentence);
+			}
 			return false;
 		}
 	}
@@ -118,9 +129,16 @@ public:
 	*/
 	int getTimestamp(){
 		int timestamp=0;
+		int timestampIndex;
+
+		if (hasStreamID)
+			timestampIndex = 8;
+		else
+			timestampIndex = 7;
+
 		try{
-			boost::algorithm::trim(m_parsedSentence[7]);
-			timestamp = boost::lexical_cast<int>(m_parsedSentence[7]);
+			boost::algorithm::trim(m_parsedSentence[timestampIndex]);
+			timestamp = boost::lexical_cast<int>(m_parsedSentence[timestampIndex]);
 		}catch(boost::bad_lexical_cast &e){
 			aisDebug("Timestamp cannot be converted to a number:" << e.what());
 		}
@@ -164,7 +182,7 @@ public:
 	}
 
 private:
-
+	bool hasStreamID;
 };
 
 #endif
