@@ -38,11 +38,11 @@ public:
 
 		if (m_parsedSentence.size() == 8 || m_parsedSentence.size() == 9 || m_parsedSentence.size() == 10)
 		{
-			if (m_parsedSentence[7].compare(0,1,"r") == 0)
+			if (boost::find_first(m_parsedSentence[7],"r"))
 			{
 				hasStreamID = true;
 			}
-			if (m_parsedSentence[7].compare(0,8,"rORBCOMM") == 0 || m_parsedSentence[7].compare(0,11,"rEXACTEARTH") == 0)
+			if (boost::find_first(m_parsedSentence[7],"rORBCOMM") || boost::find_first( m_parsedSentence[7], "rEXACTEARTH"))
 			{
 				//Skip satellite entries in terrestrial files
 				//aisDebug("Skipping satellite message from " + m_parsedSentence[7] + " source.\n" + m_fullSentence);
@@ -80,7 +80,7 @@ public:
 		}
 		else
 		{
-			if (m_parsedSentence[3].compare("HEARTBEAT") == 0)
+			if (boost::find_first(m_fullSentence,"HEARTBEAT"))
 			{
 				aisDebug("Heartbeat message\n" + m_fullSentence);
 			}
