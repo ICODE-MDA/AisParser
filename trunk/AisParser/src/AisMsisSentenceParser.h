@@ -157,7 +157,14 @@ public:
 	Call isMessageValid() before using this function
 	*/
 	std::string getStreamId(){
-		return "MSSIS";
+		if(hasStreamID)
+		{
+			return m_parsedSentence[7];
+		}
+		else
+		{
+			return "MSSIS";
+		}
 	}
 
 	/**
