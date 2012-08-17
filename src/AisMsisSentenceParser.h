@@ -30,9 +30,9 @@ public:
 	}
 
 	bool isMessageValid(){
-		if(m_fullSentence.size() > 1024)
+		if(m_fullSentence.size() > 1024 || m_fullSentence.size() == 0)
 		{
-			aisDebug("Invalid Message. Message longer than 1024 characters.");
+			aisDebug("Invalid Message. Message empty or longer than 1024 characters.");
 			return false;
 		}
 
