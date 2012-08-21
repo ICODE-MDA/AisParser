@@ -101,6 +101,11 @@ public:
 	//requires: trackIdx<aisTracks.size()
 	void writeTrack(unsigned int trackIdx)
 	{
+		if(!(m_trackSet[trackIdx].m_messages.size() > 1))
+		{
+			return;
+		}
+
 		if(trackIdx >= m_trackSet.size()){
 			aisDebug("AisTrackSet::writeTrack the trackIdx exceeds the maximum index of aisTrackSet");
 			return;
