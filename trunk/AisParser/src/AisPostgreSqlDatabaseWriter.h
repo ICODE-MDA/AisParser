@@ -302,11 +302,12 @@ public:
 	}
 	bool writeTargetEntry(const AisMessage& message)
 	{
+		string altitude ="0.0";
 		try
 		{	
 			if(m_currentIteration == 1 || m_iterations <= 0)
 			{
-				m_sqlStatement = "INSERT INTO " + m_tableName + " VALUES(DEFAULT, ";
+				m_sqlStatement = "INSERT INTO " + m_tableName + " VALUES(DEFAULT,1,'A', ";
 			}
 			else
 			{
@@ -315,16 +316,18 @@ public:
 
 			m_sqlStatement+=
 				
-				
-				boost::lexical_cast<std::string>(message.getDATETIME())+ ", " +
-				sanitize(boost::lexical_cast<std::string>(message.getSTREAMID()))+ "')";
+				"to_timestamp(" +
+				boost::lexical_cast<std::string>(message.getDATETIME())+ "), " + "'" +
+				sanitize(boost::lexical_cast<std::string>(message.getSTREAMID())) + "'," +
 				boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
+				altitude + "," +
+				"ST_Point(" +
 				boost::lexical_cast<std::string>(message.getLON())+ ", " +
-				boost::lexical_cast<std::string>(message.getLAT())+ ", " +
+				boost::lexical_cast<std::string>(message.getLAT())+ "))" ;
 
-				
+				cout << m_sqlStatement << endl;
 			//Need to add version, gen_unique_id.  Need to add update capability to existing table	
-				boost::lexical_cast<std::string>(message.getIMO())+ ", '" +
+				/*boost::lexical_cast<std::string>(message.getIMO())+ ", '" +
 				boost::lexical_cast<std::string>(message.getMMSI())+ ", " +
 				sanitize(boost::lexical_cast<std::string>(message.getCALLSIGN()))+ "', " +
 				
@@ -339,7 +342,7 @@ public:
 				boost::lexical_cast<std::string>(message.getSHIPWIDTH())+ ", " +
 				sanitize(boost::lexical_cast<std::string>(message.getDESTINATION()))+ "', '" +
 				boost::lexical_cast<std::string>(message.getETA())+ ", " +
-				boost::lexical_cast<std::string>(message.getPOSFIXTYPE())+ "')";
+				boost::lexical_cast<std::string>(message.getPOSFIXTYPE())+ "')";*/
 				/*boost::lexical_cast<std::string>(message.getCOG())+ ", " +
 				boost::lexical_cast<std::string>(message.getSOG())+ ", " +
 				boost::lexical_cast<std::string>(message.getTRUE_HEADING())+ ", " +
