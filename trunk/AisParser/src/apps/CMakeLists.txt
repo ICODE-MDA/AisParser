@@ -25,6 +25,7 @@ endif()
 if(BUILD_POSTGRESQL_APPS OR BUILD_ALL_APPS)
 add_subdirectory( LogToPostgreSqlDb )
 add_subdirectory( TcpToPostgreSqlDb )
+add_subdirectory( LogToIcodeDb)
 endif()
 
 if(BUILD_SHAPEFILE_APPS OR BUILD_ALL_APPS)
