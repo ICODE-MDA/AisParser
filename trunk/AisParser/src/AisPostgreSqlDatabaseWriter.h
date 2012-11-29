@@ -193,7 +193,7 @@ public:
 				boost::lexical_cast<std::string>(message.getDATETIME())+ "), " +
 				boost::lexical_cast<std::string>(message.getNAVSTATUS())+ ", " +
 				//boost::lexical_cast<std::string>(message.getROT())+ "')";
-				boost::lexical_cast<std::string>(message.getROT())+ ",1')";
+				boost::lexical_cast<std::string>(message.getROT())+ ",1)";
 			//Need to add Sentence_type
 
 				/*boost::lexical_cast<std::string>(message.getIMO())+ ", '" +
