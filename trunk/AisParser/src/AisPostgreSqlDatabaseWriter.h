@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 #include <sstream>
+#include <time.h>
 
 #include <pqxx/pqxx>
 
@@ -137,7 +138,218 @@ public:
 				boost::lexical_cast<std::string>(message.getETA())+ ", " +
 				boost::lexical_cast<std::string>(message.getPOSFIXTYPE())+ ", '" +
 				sanitize(boost::lexical_cast<std::string>(message.getSTREAMID()))+ "')";
+			//cout << m_sqlStatement << endl;
+			if(m_currentIteration++ == m_iterations || m_iterations <= 0)
+			{
+				m_currentIteration = 1;
 
+				//aisDebug("executing multirow insert start");
+				StatementExecutor statementExecutor(m_sqlStatement);
+				m_con->perform(statementExecutor);
+				m_sqlStatement = string("");
+				//aisDebug("executing multirow insert end");
+			}
+			return true;
+
+		}
+		catch(const exception &e)
+		{
+			cerr << "Error on Iteration: " << m_currentIteration << endl;
+			cerr << "PostgreSQL Error : " << e.what() << endl;
+			return false;
+		}
+	}
+	bool writeDynamicEntry(const AisMessage& message)
+	{
+		//time_t seconds;
+		//struct tm * ptm;
+		try
+		{	
+			if(m_currentIteration == 1 || m_iterations <= 0)
+			{
+				//m_sqlStatement = "INSERT INTO " + m_tableName + " VALUES(DEFAULT, ";
+				m_sqlStatement = "INSERT INTO " + m_tableName + " VALUES(DEFAULT,'A',1,1, ";
+			}
+			else
+			{
+				m_sqlStatement+= ", (DEFAULT, ";
+			}
+
+			m_sqlStatement+=
+				//boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
+				//boost::lexical_cast<std::string>(message.getMMSI())+ ", " +
+				//seconds = message.getDATETIME();
+				//ptm = gmtime(&seconds);
+				//cout << "asctime " << asctime(ptm) << endl;
+				
+				//boost::lexical_cast<std::string>(message.getLON())+ ", " +
+				//boost::lexical_cast<std::string>(message.getLAT())+ ", " +
+			//Need to add version, ais_static_id and gen_unique_id 	
+				boost::lexical_cast<std::string>(message.getCOG())+ ", " +
+				boost::lexical_cast<std::string>(message.getSOG())+ ", " +
+				boost::lexical_cast<std::string>(message.getTRUE_HEADING())+ ", " +
+				boost::lexical_cast<std::string>(message.getPOSACCURACY())+ ", " +
+				"to_timestamp(" +
+				boost::lexical_cast<std::string>(message.getDATETIME())+ "), " +
+				boost::lexical_cast<std::string>(message.getNAVSTATUS())+ ", " +
+				//boost::lexical_cast<std::string>(message.getROT())+ "')";
+				boost::lexical_cast<std::string>(message.getROT())+ ",1')";
+			//Need to add Sentence_type
+
+				/*boost::lexical_cast<std::string>(message.getIMO())+ ", '" +
+				sanitize(boost::lexical_cast<std::string>(message.getVESSELNAME()))+ "', " +
+				boost::lexical_cast<std::string>(message.getVESSELTYPEINT())+ ", " +
+				boost::lexical_cast<std::string>(message.getSHIPLENGTH())+ ", " +
+				boost::lexical_cast<std::string>(message.getSHIPWIDTH())+ ", " +
+				boost::lexical_cast<std::string>(message.getBOW())+ ", " +
+				boost::lexical_cast<std::string>(message.getSTERN())+ ", " +
+				boost::lexical_cast<std::string>(message.getPORT())+ ", " +
+				boost::lexical_cast<std::string>(message.getSTARBOARD())+ ", " +
+				boost::lexical_cast<std::string>(message.getDRAUGHT())+ ", '" +
+				sanitize(boost::lexical_cast<std::string>(message.getDESTINATION()))+ "', '" +
+				sanitize(boost::lexical_cast<std::string>(message.getCALLSIGN()))+ "', " +
+				
+				boost::lexical_cast<std::string>(message.getETA())+ ", " +
+				boost::lexical_cast<std::string>(message.getPOSFIXTYPE())+ ", '" +
+				sanitize(boost::lexical_cast<std::string>(message.getSTREAMID()))+ "')";*/
+			cout << m_sqlStatement << endl;
+			if(m_currentIteration++ == m_iterations || m_iterations <= 0)
+			{
+				m_currentIteration = 1;
+
+				//aisDebug("executing multirow insert start");
+				StatementExecutor statementExecutor(m_sqlStatement);
+				m_con->perform(statementExecutor);
+				m_sqlStatement = string("");
+				//aisDebug("executing multirow insert end");
+			}
+			return true;
+
+		}
+		catch(const exception &e)
+		{
+			cerr << "Error on Iteration: " << m_currentIteration << endl;
+			cerr << "PostgreSQL Error : " << e.what() << endl;
+			return false;
+		}
+	}
+	bool writeStaticEntry(const AisMessage& message)
+	{
+		try
+		{	
+			if(m_currentIteration == 1 || m_iterations <= 0)
+			{
+				m_sqlStatement = "INSERT INTO " + m_tableName + " VALUES(DEFAULT, ";
+			}
+			else
+			{
+				m_sqlStatement+= ", (DEFAULT, ";
+			}
+
+			m_sqlStatement+=
+				//boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
+				
+				
+				
+				//boost::lexical_cast<std::string>(message.getLON())+ ", " +
+				//boost::lexical_cast<std::string>(message.getLAT())+ ", " +
+			//Need to add version, gen_unique_id.  Need to add update capability to existing table	
+				boost::lexical_cast<std::string>(message.getIMO())+ ", '" +
+				boost::lexical_cast<std::string>(message.getMMSI())+ ", " +
+				sanitize(boost::lexical_cast<std::string>(message.getCALLSIGN()))+ "', " +
+				boost::lexical_cast<std::string>(message.getDATETIME())+ ", " +
+				sanitize(boost::lexical_cast<std::string>(message.getVESSELNAME()))+ "', " +
+				boost::lexical_cast<std::string>(message.getDRAUGHT())+ ", '" +
+				boost::lexical_cast<std::string>(message.getVESSELTYPEINT())+ ", " +
+				boost::lexical_cast<std::string>(message.getBOW())+ ", " +
+				boost::lexical_cast<std::string>(message.getPORT())+ ", " +
+				boost::lexical_cast<std::string>(message.getSTARBOARD())+ ", " +
+				boost::lexical_cast<std::string>(message.getSTERN())+ ", " +
+				boost::lexical_cast<std::string>(message.getSHIPLENGTH())+ ", " +
+				boost::lexical_cast<std::string>(message.getSHIPWIDTH())+ ", " +
+				sanitize(boost::lexical_cast<std::string>(message.getDESTINATION()))+ "', '" +
+				boost::lexical_cast<std::string>(message.getETA())+ ", " +
+				boost::lexical_cast<std::string>(message.getPOSFIXTYPE())+ "')";
+				/*boost::lexical_cast<std::string>(message.getCOG())+ ", " +
+				boost::lexical_cast<std::string>(message.getSOG())+ ", " +
+				boost::lexical_cast<std::string>(message.getTRUE_HEADING())+ ", " +
+				boost::lexical_cast<std::string>(message.getPOSACCURACY())+ ", " +
+				
+				boost::lexical_cast<std::string>(message.getNAVSTATUS())+ ", " +
+				boost::lexical_cast<std::string>(message.getROT())+ "')";*/
+
+				//sanitize(boost::lexical_cast<std::string>(message.getSTREAMID()))+ "')";
+			//cout << m_sqlStatement << endl;
+			if(m_currentIteration++ == m_iterations || m_iterations <= 0)
+			{
+				m_currentIteration = 1;
+
+				//aisDebug("executing multirow insert start");
+				StatementExecutor statementExecutor(m_sqlStatement);
+				m_con->perform(statementExecutor);
+				m_sqlStatement = string("");
+				//aisDebug("executing multirow insert end");
+			}
+			return true;
+
+		}
+		catch(const exception &e)
+		{
+			cerr << "Error on Iteration: " << m_currentIteration << endl;
+			cerr << "PostgreSQL Error : " << e.what() << endl;
+			return false;
+		}
+	}
+	bool writeTargetEntry(const AisMessage& message)
+	{
+		try
+		{	
+			if(m_currentIteration == 1 || m_iterations <= 0)
+			{
+				m_sqlStatement = "INSERT INTO " + m_tableName + " VALUES(DEFAULT, ";
+			}
+			else
+			{
+				m_sqlStatement+= ", (DEFAULT, ";
+			}
+
+			m_sqlStatement+=
+				
+				
+				boost::lexical_cast<std::string>(message.getDATETIME())+ ", " +
+				sanitize(boost::lexical_cast<std::string>(message.getSTREAMID()))+ "')";
+				boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
+				boost::lexical_cast<std::string>(message.getLON())+ ", " +
+				boost::lexical_cast<std::string>(message.getLAT())+ ", " +
+
+				
+			//Need to add version, gen_unique_id.  Need to add update capability to existing table	
+				boost::lexical_cast<std::string>(message.getIMO())+ ", '" +
+				boost::lexical_cast<std::string>(message.getMMSI())+ ", " +
+				sanitize(boost::lexical_cast<std::string>(message.getCALLSIGN()))+ "', " +
+				
+				sanitize(boost::lexical_cast<std::string>(message.getVESSELNAME()))+ "', " +
+				boost::lexical_cast<std::string>(message.getDRAUGHT())+ ", '" +
+				boost::lexical_cast<std::string>(message.getVESSELTYPEINT())+ ", " +
+				boost::lexical_cast<std::string>(message.getBOW())+ ", " +
+				boost::lexical_cast<std::string>(message.getPORT())+ ", " +
+				boost::lexical_cast<std::string>(message.getSTARBOARD())+ ", " +
+				boost::lexical_cast<std::string>(message.getSTERN())+ ", " +
+				boost::lexical_cast<std::string>(message.getSHIPLENGTH())+ ", " +
+				boost::lexical_cast<std::string>(message.getSHIPWIDTH())+ ", " +
+				sanitize(boost::lexical_cast<std::string>(message.getDESTINATION()))+ "', '" +
+				boost::lexical_cast<std::string>(message.getETA())+ ", " +
+				boost::lexical_cast<std::string>(message.getPOSFIXTYPE())+ "')";
+				/*boost::lexical_cast<std::string>(message.getCOG())+ ", " +
+				boost::lexical_cast<std::string>(message.getSOG())+ ", " +
+				boost::lexical_cast<std::string>(message.getTRUE_HEADING())+ ", " +
+				boost::lexical_cast<std::string>(message.getPOSACCURACY())+ ", " +
+				
+				boost::lexical_cast<std::string>(message.getNAVSTATUS())+ ", " +
+				boost::lexical_cast<std::string>(message.getROT())+ "')";*/
+
+				
+			//cout << m_sqlStatement << endl;
 			if(m_currentIteration++ == m_iterations || m_iterations <= 0)
 			{
 				m_currentIteration = 1;
