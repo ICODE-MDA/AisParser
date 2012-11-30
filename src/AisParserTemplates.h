@@ -222,7 +222,7 @@ void tcpToDatabaseParserUsage()
 void flatfileToDatabaseParserUsage()
 {
 	cerr << "This application will parse and push AIS messages to a database specified on the command line." << endl;
-	cerr << "If you speicify a static table, it will push static messages to the static table, and dynamic messages to the dynamic table" << endl;
+	cerr << "If you specify a static table, it will push static messages to the static table, and dynamic messages to the dynamic table" << endl;
 	cerr << "AisParserApp.exe <input-filename> <db-username> <db-password> <db-hostname> <db-name> <db-table> <db-numIterations> [<db-static-table>]" << endl;
 	cerr << "For example:\n AisParserApp.exe 20111010.log username password databaseserver.example.com exampleDB AISTable 100000 staticAISTable" << endl;
 	cerr << "...OR..." << endl;
