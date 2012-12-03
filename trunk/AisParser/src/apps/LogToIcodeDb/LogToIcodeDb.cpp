@@ -13,7 +13,7 @@
 int main(int argc, char** argv)
 {
 	//parse args
-	if (argc>9 || argc<6)
+	if (argc>10 || argc<6)
 	{
 		flatfileToDatabaseSchemaUsage();
 		return -1;
@@ -28,19 +28,21 @@ int main(int argc, char** argv)
 	string db_target_table = "target_location";
 	
 	string db_static_table = "ais_static";
-	cout << "made it here " << argv[1] << " " << argv[2] << " " << argv[3] << " " << argv[4] << " " << argv[5] << endl;
-	cout << "argc " << argc << endl;;
-	if(argc==9)
+	//cout << "Call: " << argv[0] << argv[1] << " " << argv[2] << " " << argv[3] << " " << argv[4] << " " << argv[5] << endl;
+	//cout << "Number of arguments: " << argc << endl;;
+	if(argc==10)
 	{
 		db_dynamic_table = argv[7];
 		db_target_table = argv[8];
 		db_static_table= argv[9];
+		cout << "Manually setting table names.\n";
 	}
-	cout << "filename " << filename << " db_host " <<  db_host << " num_inter " << db_numIterations << endl;
+	cout << "Dynamic table: " << db_dynamic_table << "\nTarget table: " << db_target_table << "\nStatic table: " << db_static_table << endl;
+	cout << "filename: " << filename << " db_host: " <<  db_host << " num_inter: " << db_numIterations << endl;
 	AisFlatFileInputSource aisInputSource(filename);
 
-	databaseParserIcodeDb<AisPostgreSqlDatabaseWriter, AisSatSentenceParser>(aisInputSource,db_user, db_pass, db_host, db_name, 
-		db_dynamic_table, db_numIterations, db_static_table, db_target_table);
+	databaseParserIcodeDb<AisPostgreSqlDatabaseWriter, AisSatSentenceParser>(aisInputSource, db_user, db_pass, db_host, db_name, 
+																			 db_dynamic_table, db_numIterations, db_static_table, db_target_table);
 	//databaseParser<AisPostgreSqlDatabaseWriter, AisMsisSentenceParser>(aisInputSource,db_user, db_pass, db_host, db_name, db_table, db_numIterations, db_static_table);
 
 	return 0;
