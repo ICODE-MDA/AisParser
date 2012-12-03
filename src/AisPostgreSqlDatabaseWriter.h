@@ -138,7 +138,7 @@ public:
 				boost::lexical_cast<std::string>(message.getETA())+ ", " +
 				boost::lexical_cast<std::string>(message.getPOSFIXTYPE())+ ", '" +
 				sanitize(boost::lexical_cast<std::string>(message.getSTREAMID()))+ "')";
-			//cout << m_sqlStatement << endl;
+			cout << m_sqlStatement << endl;
 			if(m_currentIteration++ == m_iterations || m_iterations <= 0)
 			{
 				m_currentIteration = 1;
@@ -161,39 +161,42 @@ public:
 	}
 	bool writeDynamicEntry(const AisMessage& message)
 	{
-		//time_t seconds;
-		//struct tm * ptm;
+		string version = "'A'";
+		string unique_ID = "'1234'";
 		try
 		{	
 			if(m_currentIteration == 1 || m_iterations <= 0)
 			{
 				//m_sqlStatement = "INSERT INTO " + m_tableName + " VALUES(DEFAULT, ";
-				m_sqlStatement = "INSERT INTO " + m_tableName + " VALUES(DEFAULT,'A',1,1, ";
+				m_sqlStatement = "INSERT INTO " + m_tableName + " VALUES(DEFAULT," + version + ","
+					+ unique_ID + ",";
 			}
 			else
 			{
-				m_sqlStatement+= ", (DEFAULT, ";
+				m_sqlStatement+= ", (DEFAULT, " + version + ","
+					+ unique_ID + ",";
 			}
 
 			m_sqlStatement+=
-				//boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
-				//boost::lexical_cast<std::string>(message.getMMSI())+ ", " +
-				//seconds = message.getDATETIME();
-				//ptm = gmtime(&seconds);
-				//cout << "asctime " << asctime(ptm) << endl;
-				
-				//boost::lexical_cast<std::string>(message.getLON())+ ", " +
-				//boost::lexical_cast<std::string>(message.getLAT())+ ", " +
-			//Need to add version, ais_static_id and gen_unique_id 	
-				boost::lexical_cast<std::string>(message.getCOG())+ ", " +
-				boost::lexical_cast<std::string>(message.getSOG())+ ", " +
-				boost::lexical_cast<std::string>(message.getTRUE_HEADING())+ ", " +
-				boost::lexical_cast<std::string>(message.getPOSACCURACY())+ ", " +
-				"to_timestamp(" +
+			boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
+			boost::lexical_cast<std::string>(message.getMMSI())+ ", " +
+			boost::lexical_cast<std::string>(message.getIMO())+ ", " +
+			boost::lexical_cast<std::string>(message.getROT())+ "," + 
+			boost::lexical_cast<std::string>(message.getSOG())+ ", " +
+			boost::lexical_cast<std::string>(message.getPOSACCURACY())+ ", " +
+			// Postgresql geography type 4326 is used for lat. and lon. which cover large areas
+			// 4326 is required for the geography type which will use the WGS 84 projection
+			"ST_SetSRID(ST_Point(" +
+				boost::lexical_cast<std::string>(message.getLON())+ ", " +
+				boost::lexical_cast<std::string>(message.getLAT())+ "),4326)::geography," +
+			boost::lexical_cast<std::string>(message.getCOG())+ ", " +
+			boost::lexical_cast<std::string>(message.getTRUE_HEADING())+ ", " +
+			"to_timestamp(" +
 				boost::lexical_cast<std::string>(message.getDATETIME())+ "), " +
-				boost::lexical_cast<std::string>(message.getNAVSTATUS())+ ", " +
+
+				boost::lexical_cast<std::string>(message.getNAVSTATUS())+ ")";
 				//boost::lexical_cast<std::string>(message.getROT())+ "')";
-				boost::lexical_cast<std::string>(message.getROT())+ ",1)";
+				
 			//Need to add Sentence_type
 
 				/*boost::lexical_cast<std::string>(message.getIMO())+ ", '" +
@@ -235,31 +238,32 @@ public:
 	}
 	bool writeStaticEntry(const AisMessage& message)
 	{
+		string version = "A";
+		string unique_ID = "1234";
 		try
 		{	
 			if(m_currentIteration == 1 || m_iterations <= 0)
 			{
-				m_sqlStatement = "INSERT INTO " + m_tableName + " VALUES(DEFAULT, ";
+				m_sqlStatement = "INSERT INTO " + m_tableName + " VALUES(DEFAULT, " + version + ","
+					+ unique_ID + ",";
 			}
 			else
 			{
-				m_sqlStatement+= ", (DEFAULT, ";
+				m_sqlStatement+= ", (DEFAULT, " + version + ","
+					+ unique_ID + ",";
 			}
 
 			m_sqlStatement+=
-				//boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
-				
-				
-				
-				//boost::lexical_cast<std::string>(message.getLON())+ ", " +
-				//boost::lexical_cast<std::string>(message.getLAT())+ ", " +
-			//Need to add version, gen_unique_id.  Need to add update capability to existing table	
-				boost::lexical_cast<std::string>(message.getIMO())+ ", '" +
+				"to_timestamp(" +
+				boost::lexical_cast<std::string>(message.getDATETIME())+ "), " +
+				"to_timestamp(" +
+				boost::lexical_cast<std::string>(message.getDATETIME())+ "), " +
+				boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
 				boost::lexical_cast<std::string>(message.getMMSI())+ ", " +
+				boost::lexical_cast<std::string>(message.getIMO())+ ", '" +
 				sanitize(boost::lexical_cast<std::string>(message.getCALLSIGN()))+ "', " +
 				boost::lexical_cast<std::string>(message.getDATETIME())+ ", " +
 				sanitize(boost::lexical_cast<std::string>(message.getVESSELNAME()))+ "', " +
-				boost::lexical_cast<std::string>(message.getDRAUGHT())+ ", '" +
 				boost::lexical_cast<std::string>(message.getVESSELTYPEINT())+ ", " +
 				boost::lexical_cast<std::string>(message.getBOW())+ ", " +
 				boost::lexical_cast<std::string>(message.getPORT())+ ", " +
@@ -267,6 +271,9 @@ public:
 				boost::lexical_cast<std::string>(message.getSTERN())+ ", " +
 				boost::lexical_cast<std::string>(message.getSHIPLENGTH())+ ", " +
 				boost::lexical_cast<std::string>(message.getSHIPWIDTH())+ ", " +
+				boost::lexical_cast<std::string>(message.getDRAUGHT())+ ", '" +
+			
+				
 				sanitize(boost::lexical_cast<std::string>(message.getDESTINATION()))+ "', '" +
 				boost::lexical_cast<std::string>(message.getETA())+ ", " +
 				boost::lexical_cast<std::string>(message.getPOSFIXTYPE())+ "')";
@@ -303,28 +310,30 @@ public:
 	bool writeTargetEntry(const AisMessage& message)
 	{
 		string altitude ="0.0";
+		string version = "'A'";
+		string unique_ID = "1234";
+		string AIS_Static_ID = "1";  // this needs to be ais_dynamic or MMSI ????
 		try
 		{	
 			if(m_currentIteration == 1 || m_iterations <= 0)
 			{
-				m_sqlStatement = "INSERT INTO " + m_tableName + " VALUES(DEFAULT,1,'A', ";
+				m_sqlStatement = "INSERT INTO " + m_tableName + " VALUES(DEFAULT,";
 			}
 			else
 			{
 				m_sqlStatement+= ", (DEFAULT, ";
 			}
 
-			m_sqlStatement+=
+			m_sqlStatement+= AIS_Static_ID + "," + version + "," +
 				
 				"to_timestamp(" +
 				boost::lexical_cast<std::string>(message.getDATETIME())+ "), " + "'" +
 				sanitize(boost::lexical_cast<std::string>(message.getSTREAMID())) + "'," +
 				boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
 				altitude + "," +
-				"ST_Point(" +
+				"ST_SetSRID(ST_Point(" +
 				boost::lexical_cast<std::string>(message.getLON())+ ", " +
-				boost::lexical_cast<std::string>(message.getLAT())+ "))" ;
-
+				boost::lexical_cast<std::string>(message.getLAT())+ "),4326)::geography)";
 				cout << m_sqlStatement << endl;
 			//Need to add version, gen_unique_id.  Need to add update capability to existing table	
 				/*boost::lexical_cast<std::string>(message.getIMO())+ ", '" +
