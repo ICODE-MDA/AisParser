@@ -26,16 +26,19 @@ Declare...check isReady()...writeEntry
 */
 class AisPostgreSqlDatabaseWriter : public AisWriter{
 public:
-	AisPostgreSqlDatabaseWriter(std::string username, std::string password, std::string hostname, std::string databaseName, std::string tableName, int iterations = 100000):
+	AisPostgreSqlDatabaseWriter(std::string username, std::string password, std::string hostname, std::string databaseName, std::string staticTableName, std::string dynamicTableName, int iterations = 100000):
 	m_con(static_cast<pqxx::connection*>(0)),
-		m_currentIteration(1),
+		m_staticIteration(1),
+		m_dynamicIteration(1),
 		m_username(username),
 		m_password(password),
 		m_hostname(hostname),
 		m_databaseName(databaseName),
-		m_tableName(tableName),
+		m_staticTableName(staticTableName),
+		m_dynamicTableName(dynamicTableName),
 		m_iterations(iterations),
-		m_sqlStatement("")
+		m_staticSQLStatement(""),
+		m_dynamicSQLStatement("")
 	{
 		m_initialized = init();
 	}
@@ -49,28 +52,48 @@ public:
 			{
 				aisDebug("trying to execute update any remaining entries");
 
-				if(m_sqlStatement != "")
+				if(m_staticSQLStatement != "")
 				{
 					//execute statement to add any remainign
 					//aisDebug("executing multirow insert start");
-					StatementExecutor statementExecutor(m_sqlStatement);
+					StatementExecutor statementExecutor(m_staticSQLStatement);
 					m_con->perform(statementExecutor);
-					m_sqlStatement = string("");
+					m_staticSQLStatement = string("");
 					//aisDebug("executing multirow insert end");
 					//m_sqlPreparedStatement->executeUpdate();
 				}
 			}
 			catch(const exception &e)
 			{
-				cerr << "Error on Iteration: " << m_currentIteration << endl;
+				cerr << "Error on Iteration: " << m_staticIteration << endl;
 				cerr << "Error : " << e.what() << endl;
 			}
 
+			try
+			{
+				aisDebug("trying to execute update any remaining entries");
+
+				if(m_dynamicSQLStatement != "")
+				{
+					//execute statement to add any remainign
+					//aisDebug("executing multirow insert start");
+					StatementExecutor statementExecutor(m_dynamicSQLStatement);
+					m_con->perform(statementExecutor);
+					m_dynamicSQLStatement = string("");
+					//aisDebug("executing multirow insert end");
+					//m_sqlPreparedStatement->executeUpdate();
+				}
+			}
+			catch(const exception &e)
+			{
+				cerr << "Error on Iteration: " << m_dynamicIteration << endl;
+				cerr << "Error : " << e.what() << endl;
+			}
+
+
 			disconnectFromDatabase();
-		
 		}
 	}
-
 
 	void disconnectFromDatabase()
 	{
@@ -97,254 +120,23 @@ public:
 		return m_con->esc(in);
 	}
 
-
+	//Main writeEntry function
 	bool writeEntry(const AisMessage& message)
 	{
-		try
-		{	
-			if(m_currentIteration == 1 || m_iterations <= 0)
-			{
-				m_sqlStatement = "INSERT INTO " + m_tableName + " VALUES(DEFAULT, ";
-			}
-			else
-			{
-				m_sqlStatement+= ", (DEFAULT, ";
-			}
-
-			m_sqlStatement+=
-				boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
-				boost::lexical_cast<std::string>(message.getMMSI())+ ", " +
-				boost::lexical_cast<std::string>(message.getNAVSTATUS())+ ", " +
-				boost::lexical_cast<std::string>(message.getROT())+ ", " +
-				boost::lexical_cast<std::string>(message.getSOG())+ ", " +
-				boost::lexical_cast<std::string>(message.getLON())+ ", " +
-				boost::lexical_cast<std::string>(message.getLAT())+ ", " +
-				boost::lexical_cast<std::string>(message.getCOG())+ ", " +
-				boost::lexical_cast<std::string>(message.getTRUE_HEADING())+ ", " +
-				boost::lexical_cast<std::string>(message.getDATETIME())+ ", " +
-				boost::lexical_cast<std::string>(message.getIMO())+ ", '" +
-				sanitize(boost::lexical_cast<std::string>(message.getVESSELNAME()))+ "', " +
-				boost::lexical_cast<std::string>(message.getVESSELTYPEINT())+ ", " +
-				boost::lexical_cast<std::string>(message.getSHIPLENGTH())+ ", " +
-				boost::lexical_cast<std::string>(message.getSHIPWIDTH())+ ", " +
-				boost::lexical_cast<std::string>(message.getBOW())+ ", " +
-				boost::lexical_cast<std::string>(message.getSTERN())+ ", " +
-				boost::lexical_cast<std::string>(message.getPORT())+ ", " +
-				boost::lexical_cast<std::string>(message.getSTARBOARD())+ ", " +
-				boost::lexical_cast<std::string>(message.getDRAUGHT())+ ", '" +
-				sanitize(boost::lexical_cast<std::string>(message.getDESTINATION()))+ "', '" +
-				sanitize(boost::lexical_cast<std::string>(message.getCALLSIGN()))+ "', " +
-				boost::lexical_cast<std::string>(message.getPOSACCURACY())+ ", " +
-				boost::lexical_cast<std::string>(message.getETA())+ ", " +
-				boost::lexical_cast<std::string>(message.getPOSFIXTYPE())+ ", '" +
-				sanitize(boost::lexical_cast<std::string>(message.getSTREAMID()))+ "')";
-			cout << m_sqlStatement << endl;
-			if(m_currentIteration++ == m_iterations || m_iterations <= 0)
-			{
-				m_currentIteration = 1;
-
-				//aisDebug("executing multirow insert start");
-				StatementExecutor statementExecutor(m_sqlStatement);
-				m_con->perform(statementExecutor);
-				m_sqlStatement = string("");
-				//aisDebug("executing multirow insert end");
-			}
-			return true;
-
-		}
-		catch(const exception &e)
+		int message_type = message.getMESSAGETYPE();
+		if (message_type == 5 || message_type == 24)	//Static message
 		{
-			cerr << "Error on Iteration: " << m_currentIteration << endl;
-			cerr << "PostgreSQL Error : " << e.what() << endl;
-			return false;
+			aisDebug("*** writing to static table ***");
+			return writeStaticEntry(message);
 		}
-	}
-
-	bool writeDynamicEntry(const AisMessage& message)
-	{
-		string version = "'TEST'";
-		string unique_ID = "'TESTUNIQUEID123'";
-		try
-		{	
-			if(m_currentIteration == 1 || m_iterations <= 0)
-			{
-				//m_sqlStatement = "INSERT INTO " + m_tableName + " VALUES(DEFAULT, ";
-				m_sqlStatement = "INSERT INTO " + m_tableName + " VALUES(DEFAULT, " + version + ", " + unique_ID + ", ";
-			}
-			else
-			{
-				m_sqlStatement+= ", (DEFAULT, " + version + ", " + unique_ID + ", ";
-			}
-
-			m_sqlStatement +=
-				boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
-				boost::lexical_cast<std::string>(message.getMMSI()) + ", " +
-				boost::lexical_cast<std::string>(message.getIMO()) + ", " +
-				boost::lexical_cast<std::string>(message.getROT()) + ", " + 
-				boost::lexical_cast<std::string>(message.getSOG()) + ", " +
-				boost::lexical_cast<std::string>(message.getPOSACCURACY()) + ", " +
-				// Postgresql geography type 4326 is used for lat. and lon. which cover large areas
-				// 4326 is required for the geography type which will use the WGS 84 projection
-				"ST_SetSRID(ST_Point(" +
-				  boost::lexical_cast<std::string>(message.getLON()) + ", " +
-				  boost::lexical_cast<std::string>(message.getLAT()) + "),4326)::geography, " +
-				boost::lexical_cast<std::string>(message.getCOG()) + ", " +
-				boost::lexical_cast<std::string>(message.getTRUE_HEADING()) + ", " +
-				"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
-				boost::lexical_cast<std::string>(message.getNAVSTATUS()) + ", " + 
-				+ "'" + sanitize(boost::lexical_cast<std::string>(message.getSTREAMID()))+ "')";
-					
-			//cout << m_sqlStatement << endl;
-			if(m_currentIteration++ == m_iterations || m_iterations <= 0)
-			{
-				m_currentIteration = 1;
-
-				//aisDebug("executing multirow insert start");
-				StatementExecutor statementExecutor(m_sqlStatement);
-				m_con->perform(statementExecutor);
-				m_sqlStatement = string("");
-				//aisDebug("executing multirow insert end");
-			}
-			return true;
-		}
-		catch(const exception &e)
+		else if (message_type == 1 || message_type == 2 || message_type == 3 || message_type == 4 || message_type == 18 || message_type == 19) //Dynamic message with location
 		{
-			cerr << "Error on Iteration: " << m_currentIteration << endl;
-			cerr << "PostgreSQL Error : " << e.what() << endl;
-			return false;
+			aisDebug("*** writing to dynamic table ***");
+			return writeDynamicEntry(message);
 		}
-	}
-
-	bool writeStaticEntry(const AisMessage& message)
-	{
-		string version = "'TEST'";
-		string unique_ID = "'TESTUNIQUEID123'";
-		try
-		{	
-			if(m_currentIteration == 1 || m_iterations <= 0)
-			{
-				m_sqlStatement = "INSERT INTO " + m_tableName + " VALUES(DEFAULT, " + version + ", " + unique_ID + ", ";
-			}
-			else
-			{
-				m_sqlStatement+= ", (DEFAULT, " + version + ", " + unique_ID + ", ";
-			}
-
-			m_sqlStatement +=
-				"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
-				"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
-				boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
-				boost::lexical_cast<std::string>(message.getMMSI())+ ", " +
-				boost::lexical_cast<std::string>(message.getIMO())+ ", " +
-				+ "'" + sanitize(boost::lexical_cast<std::string>(message.getCALLSIGN())) + "', " +
-				+ "'" + sanitize(boost::lexical_cast<std::string>(message.getVESSELNAME())) + "', " +
-				boost::lexical_cast<std::string>(message.getVESSELTYPEINT()) + ", " +
-				boost::lexical_cast<std::string>(message.getBOW()) + ", " +
-				boost::lexical_cast<std::string>(message.getPORT()) + ", " +
-				boost::lexical_cast<std::string>(message.getSTARBOARD()) + ", " +
-				boost::lexical_cast<std::string>(message.getSTERN()) + ", " +
-				boost::lexical_cast<std::string>(message.getSHIPLENGTH()) + ", " +
-				boost::lexical_cast<std::string>(message.getSHIPWIDTH()) + ", " +
-				boost::lexical_cast<std::string>(message.getDRAUGHT()) + ", " +
-				+ "'" + sanitize(boost::lexical_cast<std::string>(message.getDESTINATION())) + "', " +
-				"to_timestamp(" + boost::lexical_cast<std::string>(message.getETA()) + "), " +
-				boost::lexical_cast<std::string>(message.getPOSFIXTYPE()) + ", " + 
-				+ "'" + sanitize(boost::lexical_cast<std::string>(message.getSTREAMID())) + "')";
-
-			//cout << m_sqlStatement << endl;
-			if(m_currentIteration++ == m_iterations || m_iterations <= 0)
-			{
-				m_currentIteration = 1;
-
-				//aisDebug("executing multirow insert start");
-				StatementExecutor statementExecutor(m_sqlStatement);
-				m_con->perform(statementExecutor);
-				m_sqlStatement = string("");
-				//aisDebug("executing multirow insert end");
-			}
-			return true;
-
-		}
-		catch(const exception &e)
+		else
 		{
-			cerr << "Error on Iteration: " << m_currentIteration << endl;
-			cerr << "PostgreSQL Error : " << e.what() << endl;
-			return false;
-		}
-	}
-
-	bool writeTargetEntry(const AisMessage& message)
-	{
-		string altitude ="0.0";
-		string version = "'A'";
-		string unique_ID = "1234";
-		string AIS_Static_ID = "1";  // this needs to be ais_dynamic or MMSI ????
-		try
-		{	
-			if(m_currentIteration == 1 || m_iterations <= 0)
-			{
-				m_sqlStatement = "INSERT INTO " + m_tableName + " VALUES(DEFAULT,";
-			}
-			else
-			{
-				m_sqlStatement+= ", (DEFAULT, ";
-			}
-
-			m_sqlStatement+= AIS_Static_ID + "," + version + "," +
-				
-				"to_timestamp(" +
-				boost::lexical_cast<std::string>(message.getDATETIME())+ "), " + "'" +
-				sanitize(boost::lexical_cast<std::string>(message.getSTREAMID())) + "'," +
-				boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
-				altitude + "," +
-				"ST_SetSRID(ST_Point(" +
-				boost::lexical_cast<std::string>(message.getLON())+ ", " +
-				boost::lexical_cast<std::string>(message.getLAT())+ "),4326)::geography)";
-				cout << m_sqlStatement << endl;
-			//Need to add version, gen_unique_id.  Need to add update capability to existing table	
-				/*boost::lexical_cast<std::string>(message.getIMO())+ ", '" +
-				boost::lexical_cast<std::string>(message.getMMSI())+ ", " +
-				sanitize(boost::lexical_cast<std::string>(message.getCALLSIGN()))+ "', " +
-				
-				sanitize(boost::lexical_cast<std::string>(message.getVESSELNAME()))+ "', " +
-				boost::lexical_cast<std::string>(message.getDRAUGHT())+ ", '" +
-				boost::lexical_cast<std::string>(message.getVESSELTYPEINT())+ ", " +
-				boost::lexical_cast<std::string>(message.getBOW())+ ", " +
-				boost::lexical_cast<std::string>(message.getPORT())+ ", " +
-				boost::lexical_cast<std::string>(message.getSTARBOARD())+ ", " +
-				boost::lexical_cast<std::string>(message.getSTERN())+ ", " +
-				boost::lexical_cast<std::string>(message.getSHIPLENGTH())+ ", " +
-				boost::lexical_cast<std::string>(message.getSHIPWIDTH())+ ", " +
-				sanitize(boost::lexical_cast<std::string>(message.getDESTINATION()))+ "', '" +
-				boost::lexical_cast<std::string>(message.getETA())+ ", " +
-				boost::lexical_cast<std::string>(message.getPOSFIXTYPE())+ "')";*/
-				/*boost::lexical_cast<std::string>(message.getCOG())+ ", " +
-				boost::lexical_cast<std::string>(message.getSOG())+ ", " +
-				boost::lexical_cast<std::string>(message.getTRUE_HEADING())+ ", " +
-				boost::lexical_cast<std::string>(message.getPOSACCURACY())+ ", " +
-				
-				boost::lexical_cast<std::string>(message.getNAVSTATUS())+ ", " +
-				boost::lexical_cast<std::string>(message.getROT())+ "')";*/
-
-				
-			//cout << m_sqlStatement << endl;
-			if(m_currentIteration++ == m_iterations || m_iterations <= 0)
-			{
-				m_currentIteration = 1;
-
-				//aisDebug("executing multirow insert start");
-				StatementExecutor statementExecutor(m_sqlStatement);
-				m_con->perform(statementExecutor);
-				m_sqlStatement = string("");
-				//aisDebug("executing multirow insert end");
-			}
-			return true;
-
-		}
-		catch(const exception &e)
-		{
-			cerr << "Error on Iteration: " << m_currentIteration << endl;
-			cerr << "PostgreSQL Error : " << e.what() << endl;
+			aisDebug("Message type not handled");
 			return false;
 		}
 	}
@@ -396,15 +188,210 @@ private:
 
 	}
 
+
+	bool writeDynamicEntry(const AisMessage& message)
+	{
+		string version = "'TEST'";
+		string unique_ID = "'TESTUNIQUEID123'";
+		try
+		{	
+			if(m_dynamicIteration == 1 || m_iterations <= 0)
+			{
+				//m_sqlStatement = "INSERT INTO " + m_tableName + " VALUES(DEFAULT, ";
+				m_dynamicSQLStatement = "INSERT INTO " + m_dynamicTableName + " VALUES(DEFAULT, " + version + ", " + unique_ID + ", ";
+			}
+			else
+			{
+				m_dynamicSQLStatement+= ", (DEFAULT, " + version + ", " + unique_ID + ", ";
+			}
+
+			m_dynamicSQLStatement +=
+				boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
+				boost::lexical_cast<std::string>(message.getMMSI()) + ", " +
+				boost::lexical_cast<std::string>(message.getROT()) + ", " + 
+				boost::lexical_cast<std::string>(message.getSOG()) + ", " +
+				boost::lexical_cast<std::string>(message.getPOSACCURACY()) + ", " +
+				// Postgresql geography type 4326 is used for lat. and lon. which cover large areas
+				// 4326 is required for the geography type which will use the WGS 84 projection
+				"ST_SetSRID(ST_Point(" +
+				  boost::lexical_cast<std::string>(message.getLON()) + ", " +
+				  boost::lexical_cast<std::string>(message.getLAT()) + "),4326)::geography, " +
+				boost::lexical_cast<std::string>(message.getCOG()) + ", " +
+				boost::lexical_cast<std::string>(message.getTRUE_HEADING()) + ", " +
+				"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
+				boost::lexical_cast<std::string>(message.getNAVSTATUS()) + ", " + 
+				+ "'" + sanitize(boost::lexical_cast<std::string>(message.getSTREAMID()))+ "')";
+					
+			//cout << m_sqlStatement << endl;
+			if(m_dynamicIteration++ == m_iterations || m_iterations <= 0)
+			{
+				m_dynamicIteration = 1;
+
+				//aisDebug("executing multirow insert start");
+				StatementExecutor statementExecutor(m_dynamicSQLStatement);
+				m_con->perform(statementExecutor);
+				m_dynamicSQLStatement = string("");
+				aisDebug("executing multirow insert end");
+			}
+			return true;
+		}
+		catch(const exception &e)
+		{
+			cerr << "Error on Iteration: " << m_dynamicIteration << endl;
+			cerr << "PostgreSQL Error : " << e.what() << endl;
+			cerr << m_dynamicSQLStatement << endl << endl;
+			return false;
+		}
+	}
+
+	bool writeStaticEntry(const AisMessage& message)
+	{
+		string version = "'TEST'";
+		string unique_ID = "'TESTUNIQUEID123'";
+		try
+		{	
+			if(m_staticIteration == 1 || m_iterations <= 0)
+			{
+				m_staticSQLStatement = "INSERT INTO " + m_staticTableName + " VALUES(DEFAULT, " + version + ", " + unique_ID + ", ";
+			}
+			else
+			{
+				m_staticSQLStatement+= ", (DEFAULT, " + version + ", " + unique_ID + ", ";
+			}
+
+			m_staticSQLStatement +=
+				"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
+				"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
+				boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
+				boost::lexical_cast<std::string>(message.getMMSI())+ ", " +
+				boost::lexical_cast<std::string>(message.getIMO())+ ", " +
+				+ "'" + sanitize(boost::lexical_cast<std::string>(message.getCALLSIGN())) + "', " +
+				+ "'" + sanitize(boost::lexical_cast<std::string>(message.getVESSELNAME())) + "', " +
+				boost::lexical_cast<std::string>(message.getVESSELTYPEINT()) + ", " +
+				boost::lexical_cast<std::string>(message.getBOW()) + ", " +
+				boost::lexical_cast<std::string>(message.getPORT()) + ", " +
+				boost::lexical_cast<std::string>(message.getSTARBOARD()) + ", " +
+				boost::lexical_cast<std::string>(message.getSTERN()) + ", " +
+				boost::lexical_cast<std::string>(message.getSHIPLENGTH()) + ", " +
+				boost::lexical_cast<std::string>(message.getSHIPWIDTH()) + ", " +
+				boost::lexical_cast<std::string>(message.getDRAUGHT()) + ", " +
+				+ "'" + sanitize(boost::lexical_cast<std::string>(message.getDESTINATION())) + "', " +
+				"to_timestamp(" + boost::lexical_cast<std::string>(message.getETA()) + "), " +
+				boost::lexical_cast<std::string>(message.getPOSFIXTYPE()) + ", " + 
+				+ "'" + sanitize(boost::lexical_cast<std::string>(message.getSTREAMID())) + "')";
+
+			//cout << m_sqlStatement << endl;
+			if(m_staticIteration++ == m_iterations || m_iterations <= 0)
+			{
+				m_staticIteration = 1;
+
+				//aisDebug("executing multirow insert start");
+				StatementExecutor statementExecutor(m_staticSQLStatement);
+				m_con->perform(statementExecutor);
+				m_staticSQLStatement = string("");
+				//aisDebug("executing multirow insert end");
+			}
+			return true;
+
+		}
+		catch(const exception &e)
+		{
+			cerr << "Error on Iteration: " << m_staticIteration << endl;
+			cerr << "PostgreSQL Error : " << e.what() << endl;
+			return false;
+		}
+	}
+
+	/*
+	bool writeTargetEntry(const AisMessage& message)
+	{
+		string altitude ="0.0";
+		string version = "'A'";
+		string unique_ID = "1234";
+		string AIS_Static_ID = "1";  // this needs to be ais_dynamic or MMSI ????
+		try
+		{	
+			if(m_currentIteration == 1 || m_iterations <= 0)
+			{
+				//TODO: create targetTable name
+				//m_sqlStatement = "INSERT INTO " + m_targetTableName + " VALUES(DEFAULT,";
+			}
+			else
+			{
+				m_sqlStatement+= ", (DEFAULT, ";
+			}
+
+			m_sqlStatement+= AIS_Static_ID + "," + version + "," +
+				
+				"to_timestamp(" +
+				boost::lexical_cast<std::string>(message.getDATETIME())+ "), " + "'" +
+				sanitize(boost::lexical_cast<std::string>(message.getSTREAMID())) + "'," +
+				boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
+				altitude + "," +
+				"ST_SetSRID(ST_Point(" +
+				boost::lexical_cast<std::string>(message.getLON())+ ", " +
+				boost::lexical_cast<std::string>(message.getLAT())+ "),4326)::geography)";
+				cout << m_sqlStatement << endl;
+			//Need to add version, gen_unique_id.  Need to add update capability to existing table	
+				boost::lexical_cast<std::string>(message.getIMO())+ ", '" +
+				boost::lexical_cast<std::string>(message.getMMSI())+ ", " +
+				sanitize(boost::lexical_cast<std::string>(message.getCALLSIGN()))+ "', " +
+				
+				sanitize(boost::lexical_cast<std::string>(message.getVESSELNAME()))+ "', " +
+				boost::lexical_cast<std::string>(message.getDRAUGHT())+ ", '" +
+				boost::lexical_cast<std::string>(message.getVESSELTYPEINT())+ ", " +
+				boost::lexical_cast<std::string>(message.getBOW())+ ", " +
+				boost::lexical_cast<std::string>(message.getPORT())+ ", " +
+				boost::lexical_cast<std::string>(message.getSTARBOARD())+ ", " +
+				boost::lexical_cast<std::string>(message.getSTERN())+ ", " +
+				boost::lexical_cast<std::string>(message.getSHIPLENGTH())+ ", " +
+				boost::lexical_cast<std::string>(message.getSHIPWIDTH())+ ", " +
+				sanitize(boost::lexical_cast<std::string>(message.getDESTINATION()))+ "', '" +
+				boost::lexical_cast<std::string>(message.getETA())+ ", " +
+				boost::lexical_cast<std::string>(message.getPOSFIXTYPE())+ "')";
+				boost::lexical_cast<std::string>(message.getCOG())+ ", " +
+				boost::lexical_cast<std::string>(message.getSOG())+ ", " +
+				boost::lexical_cast<std::string>(message.getTRUE_HEADING())+ ", " +
+				boost::lexical_cast<std::string>(message.getPOSACCURACY())+ ", " +
+				
+				boost::lexical_cast<std::string>(message.getNAVSTATUS())+ ", " +
+				boost::lexical_cast<std::string>(message.getROT())+ "')";
+
+				
+			//cout << m_sqlStatement << endl;
+			if(m_currentIteration++ == m_iterations || m_iterations <= 0)
+			{
+				m_currentIteration = 1;
+
+				//aisDebug("executing multirow insert start");
+				StatementExecutor statementExecutor(m_sqlStatement);
+				m_con->perform(statementExecutor);
+				m_sqlStatement = string("");
+				//aisDebug("executing multirow insert end");
+			}
+			return true;
+
+		}
+		catch(const exception &e)
+		{
+			cerr << "Error on Iteration: " << m_currentIteration << endl;
+			cerr << "PostgreSQL Error : " << e.what() << endl;
+			return false;
+		}
+	}
+	*/
+
 	void print()
 	{
 		cout << "Username: " << m_username << endl;
 		cout << "Password: " << m_password << endl;
 		cout << "Hostname: " << m_hostname << endl;
 		cout << "Database Name: " << m_databaseName<< endl;
-		cout << "Table Name: " << m_tableName<< endl;
+		cout << "Static Table Name: " << m_staticTableName<< endl;
+		cout << "Dynamic Table Name: " << m_dynamicTableName<< endl;
 		cout << "Iterations: " << m_iterations<< endl;
-		cout << "Current Iteration: " << m_currentIteration<< endl;
+		cout << "Static Iteration: " << m_staticIteration<< endl;
+		cout << "Dynamic Iteration: " << m_dynamicIteration<< endl;
 		cout << "Initialized: " << m_initialized<< endl;
 
 		if(m_con)
@@ -431,12 +418,15 @@ private:
 	string m_password;
 	string m_hostname;
 	string m_databaseName;
-	string m_tableName;
+	string m_staticTableName;
+	string m_dynamicTableName;
 	int m_iterations;
-	int m_currentIteration;
+	int m_staticIteration;
+	int m_dynamicIteration;
 	bool m_initialized;
 	
-	string m_sqlStatement;
+	string m_staticSQLStatement;
+	string m_dynamicSQLStatement;
 	std::shared_ptr<pqxx::connection>  m_con;
 };
 
