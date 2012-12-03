@@ -190,12 +190,11 @@ public:
 				  boost::lexical_cast<std::string>(message.getLAT()) + "),4326)::geography, " +
 				boost::lexical_cast<std::string>(message.getCOG()) + ", " +
 				boost::lexical_cast<std::string>(message.getTRUE_HEADING()) + ", " +
-				"to_timestamp(" +
-				boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
+				"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
 				boost::lexical_cast<std::string>(message.getNAVSTATUS()) + ", " + 
 				+ "'" + sanitize(boost::lexical_cast<std::string>(message.getSTREAMID()))+ "')";
 					
-			cout << m_sqlStatement << endl;
+			//cout << m_sqlStatement << endl;
 			if(m_currentIteration++ == m_iterations || m_iterations <= 0)
 			{
 				m_currentIteration = 1;
@@ -207,7 +206,6 @@ public:
 				//aisDebug("executing multirow insert end");
 			}
 			return true;
-
 		}
 		catch(const exception &e)
 		{
@@ -232,39 +230,27 @@ public:
 				m_sqlStatement+= ", (DEFAULT, " + version + ", " + unique_ID + ", ";
 			}
 
-			m_sqlStatement+=
-				"to_timestamp(" +
-				boost::lexical_cast<std::string>(message.getDATETIME())+ "), " +
-				"to_timestamp(" +
-				boost::lexical_cast<std::string>(message.getDATETIME())+ "), " +
+			m_sqlStatement +=
+				"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
+				"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
 				boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
 				boost::lexical_cast<std::string>(message.getMMSI())+ ", " +
-				boost::lexical_cast<std::string>(message.getIMO())+ ", '" +
-				sanitize(boost::lexical_cast<std::string>(message.getCALLSIGN()))+ "', " +
-				boost::lexical_cast<std::string>(message.getDATETIME())+ ", " +
-				sanitize(boost::lexical_cast<std::string>(message.getVESSELNAME()))+ "', " +
-				boost::lexical_cast<std::string>(message.getVESSELTYPEINT())+ ", " +
-				boost::lexical_cast<std::string>(message.getBOW())+ ", " +
-				boost::lexical_cast<std::string>(message.getPORT())+ ", " +
-				boost::lexical_cast<std::string>(message.getSTARBOARD())+ ", " +
-				boost::lexical_cast<std::string>(message.getSTERN())+ ", " +
-				boost::lexical_cast<std::string>(message.getSHIPLENGTH())+ ", " +
-				boost::lexical_cast<std::string>(message.getSHIPWIDTH())+ ", " +
-				boost::lexical_cast<std::string>(message.getDRAUGHT())+ ", '" +
-			
-				
-				sanitize(boost::lexical_cast<std::string>(message.getDESTINATION()))+ "', '" +
-				boost::lexical_cast<std::string>(message.getETA())+ ", " +
-				boost::lexical_cast<std::string>(message.getPOSFIXTYPE())+ "')";
-				/*boost::lexical_cast<std::string>(message.getCOG())+ ", " +
-				boost::lexical_cast<std::string>(message.getSOG())+ ", " +
-				boost::lexical_cast<std::string>(message.getTRUE_HEADING())+ ", " +
-				boost::lexical_cast<std::string>(message.getPOSACCURACY())+ ", " +
-				
-				boost::lexical_cast<std::string>(message.getNAVSTATUS())+ ", " +
-				boost::lexical_cast<std::string>(message.getROT())+ "')";*/
+				boost::lexical_cast<std::string>(message.getIMO())+ ", " +
+				+ "'" + sanitize(boost::lexical_cast<std::string>(message.getCALLSIGN())) + "', " +
+				+ "'" + sanitize(boost::lexical_cast<std::string>(message.getVESSELNAME())) + "', " +
+				boost::lexical_cast<std::string>(message.getVESSELTYPEINT()) + ", " +
+				boost::lexical_cast<std::string>(message.getBOW()) + ", " +
+				boost::lexical_cast<std::string>(message.getPORT()) + ", " +
+				boost::lexical_cast<std::string>(message.getSTARBOARD()) + ", " +
+				boost::lexical_cast<std::string>(message.getSTERN()) + ", " +
+				boost::lexical_cast<std::string>(message.getSHIPLENGTH()) + ", " +
+				boost::lexical_cast<std::string>(message.getSHIPWIDTH()) + ", " +
+				boost::lexical_cast<std::string>(message.getDRAUGHT()) + ", " +
+				+ "'" + sanitize(boost::lexical_cast<std::string>(message.getDESTINATION())) + "', " +
+				"to_timestamp(" + boost::lexical_cast<std::string>(message.getETA()) + "), " +
+				boost::lexical_cast<std::string>(message.getPOSFIXTYPE()) + ", " + 
+				+ "'" + sanitize(boost::lexical_cast<std::string>(message.getSTREAMID())) + "')";
 
-				//sanitize(boost::lexical_cast<std::string>(message.getSTREAMID()))+ "')";
 			//cout << m_sqlStatement << endl;
 			if(m_currentIteration++ == m_iterations || m_iterations <= 0)
 			{
