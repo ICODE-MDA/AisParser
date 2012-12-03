@@ -346,33 +346,11 @@ int databaseParserIcodeDb(AisInputSource& aisInputSource,string db_user, string 
 {
 	boost::timer::auto_cpu_timer timer;
 
-	bool splitStaticAndDynamic = true;
-	/*if(db_static_table!="")
+	std::shared_ptr<DatabaseWriterType> aisWriter;
+	aisWriter = std::shared_ptr<DatabaseWriterType>(new DatabaseWriterType(db_user, db_pass, db_host, db_name, db_static_table, db_dynamic_table, boost::lexical_cast<int>(db_numIterations)));
+	if(!aisWriter->isReady())
 	{
-		splitStaticAndDynamic = true;
-	}*/
-	
-	
-	//Define output class (an AisWriter)
-	//STEPX: choose the correct type of output source
-	DatabaseWriterType aisWriterD(db_user, db_pass, db_host, db_name, db_dynamic_table, boost::lexical_cast<int>(db_numIterations));
-	DatabaseWriterType aisWriterT(db_user, db_pass, db_host, db_name, db_target_table, boost::lexical_cast<int>(db_numIterations));
-	if(!aisWriterD.isReady())
-	{
-		aisDebug("AisWriter Dynamic Table is not ready");
-		return -1;
-	}
-	if(!aisWriterT.isReady())
-	{
-		aisDebug("AisWriter Target Table is not ready");
-		return -1;
-	}
-
-	std::shared_ptr<DatabaseWriterType> aisWriterS;
-	aisWriterS = std::shared_ptr<DatabaseWriterType>(new DatabaseWriterType(db_user, db_pass, db_host, db_name, db_static_table, boost::lexical_cast<int>(db_numIterations)));
-	if(!aisWriterS->isReady())
-	{
-		aisDebug("AisWriter Static Table is not ready");
+		aisDebug("AisWriter is not ready");
 		return -1;
 	}
 	
@@ -416,21 +394,8 @@ int databaseParserIcodeDb(AisInputSource& aisInputSource,string db_user, string 
 				//add streamid from ais sentence to the ais message
 				aisMessage.setSTREAMID(aisSentenceParser.getStreamId());
 
-				int message_type = aisMessage.getMESSAGETYPE();
-				//check if static AIS message type
-				if (message_type == 5 || message_type == 24)
-				{
-					aisDebug("writing to static table");
-					aisWriterS->writeStaticEntry(aisMessage);
-				}
-				else
-				{
-					aisDebug("writing to dynamic table");
-					aisWriterD.writeDynamicEntry(aisMessage);
-					aisDebug("writing to target table");
-					aisWriterT.writeTargetEntry(aisMessage);
-				}
-						
+				//aisDebug("*** writing to table ***");
+				aisWriter->writeEntry(aisMessage);
 				}
 				catch(exception &e)
 				{
