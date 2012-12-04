@@ -126,12 +126,12 @@ public:
 		int message_type = message.getMESSAGETYPE();
 		if (message_type == 5 || message_type == 24)	//Static message
 		{
-			aisDebug("*** writing to static table ***");
+			//aisDebug("*** writing to static table ***");
 			return writeStaticEntry(message);
 		}
 		else if (message_type == 1 || message_type == 2 || message_type == 3 || message_type == 4 || message_type == 18 || message_type == 19) //Dynamic message with location
 		{
-			aisDebug("*** writing to dynamic table ***");
+			//aisDebug("*** writing to dynamic table ***");
 			return writeDynamicEntry(message);
 		}
 		else
@@ -192,37 +192,35 @@ private:
 	bool writeDynamicEntry(const AisMessage& message)
 	{
 		string version = "'TEST'";
-		string unique_ID = "'TESTUNIQUEID123'";
+		
 		try
 		{	
 			if(m_dynamicIteration == 1 || m_iterations <= 0)
 			{
-				//m_sqlStatement = "INSERT INTO " + m_tableName + " VALUES(DEFAULT, ";
-				m_dynamicSQLStatement = "INSERT INTO " + m_dynamicTableName + " VALUES(DEFAULT, " + version + ", " + unique_ID + ", ";
+				m_dynamicSQLStatement = "INSERT INTO " + m_dynamicTableName + " VALUES(DEFAULT, ";
 			}
 			else
 			{
-				m_dynamicSQLStatement+= ", (DEFAULT, " + version + ", " + unique_ID + ", ";
+				m_dynamicSQLStatement+= ", (DEFAULT, ";
 			}
-
 			m_dynamicSQLStatement +=
+				version + "," + 
 				boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
 				boost::lexical_cast<std::string>(message.getMMSI()) + ", " +
+				boost::lexical_cast<std::string>(message.getNAVSTATUS()) + ", " + 
 				boost::lexical_cast<std::string>(message.getROT()) + ", " + 
 				boost::lexical_cast<std::string>(message.getSOG()) + ", " +
 				boost::lexical_cast<std::string>(message.getPOSACCURACY()) + ", " +
-				// Postgresql geography type 4326 is used for lat. and lon. which cover large areas
-				// 4326 is required for the geography type which will use the WGS 84 projection
+				// Postgresql geography type 4326 (WGS projection ) is used for lat. and lon. which cover large areas
 				"ST_SetSRID(ST_Point(" +
 				  boost::lexical_cast<std::string>(message.getLON()) + ", " +
 				  boost::lexical_cast<std::string>(message.getLAT()) + "),4326)::geography, " +
 				boost::lexical_cast<std::string>(message.getCOG()) + ", " +
 				boost::lexical_cast<std::string>(message.getTRUE_HEADING()) + ", " +
 				"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
-				boost::lexical_cast<std::string>(message.getNAVSTATUS()) + ", " + 
-				+ "'" + sanitize(boost::lexical_cast<std::string>(message.getSTREAMID()))+ "')";
-					
-			//cout << m_sqlStatement << endl;
+				"'" + sanitize(boost::lexical_cast<std::string>(message.getSTREAMID()))+ "')";
+				
+			//cout << m_dynamicSQLStatement << endl;
 			if(m_dynamicIteration++ == m_iterations || m_iterations <= 0)
 			{
 				m_dynamicIteration = 1;
@@ -248,25 +246,36 @@ private:
 	{
 		string version = "'TEST'";
 		string unique_ID = "'TESTUNIQUEID123'";
+		string mmsi, imo, callsign, vesselname;
 		try
 		{	
 			if(m_staticIteration == 1 || m_iterations <= 0)
 			{
-				m_staticSQLStatement = "INSERT INTO " + m_staticTableName + " VALUES(DEFAULT, " + version + ", " + unique_ID + ", ";
+				m_staticSQLStatement = "INSERT INTO " + m_staticTableName + " VALUES(DEFAULT, ";
 			}
 			else
 			{
-				m_staticSQLStatement+= ", (DEFAULT, " + version + ", " + unique_ID + ", ";
+				m_staticSQLStatement+= ", (DEFAULT, ";
 			}
+			mmsi = boost::lexical_cast<std::string>(message.getMMSI());
+			imo = boost::lexical_cast<std::string>(message.getIMO());;
+			callsign = sanitize(boost::lexical_cast<std::string>(message.getCALLSIGN()));
+			vesselname = sanitize(boost::lexical_cast<std::string>(message.getVESSELNAME()));
+			
+			unique_ID = genUniqueID(mmsi, imo, callsign, vesselname);
+			//cout << "mmsi " << mmsi << "imo " << imo << "callsign " << callsign << "vesselname " << vesselname << endl;
+			//cout << "unqiue_ID " << unique_ID << endl;
 
 			m_staticSQLStatement +=
+				version + "," +
+				"'" + unique_ID + "'," +
 				"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
 				"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
 				boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
-				boost::lexical_cast<std::string>(message.getMMSI())+ ", " +
-				boost::lexical_cast<std::string>(message.getIMO())+ ", " +
-				+ "'" + sanitize(boost::lexical_cast<std::string>(message.getCALLSIGN())) + "', " +
-				+ "'" + sanitize(boost::lexical_cast<std::string>(message.getVESSELNAME())) + "', " +
+				mmsi + ", " +
+				imo + ", " +
+				"'" + callsign + "', " + 
+				"'" + vesselname + "', " +
 				boost::lexical_cast<std::string>(message.getVESSELTYPEINT()) + ", " +
 				boost::lexical_cast<std::string>(message.getBOW()) + ", " +
 				boost::lexical_cast<std::string>(message.getPORT()) + ", " +
@@ -275,12 +284,12 @@ private:
 				boost::lexical_cast<std::string>(message.getSHIPLENGTH()) + ", " +
 				boost::lexical_cast<std::string>(message.getSHIPWIDTH()) + ", " +
 				boost::lexical_cast<std::string>(message.getDRAUGHT()) + ", " +
-				+ "'" + sanitize(boost::lexical_cast<std::string>(message.getDESTINATION())) + "', " +
+				"'" + sanitize(boost::lexical_cast<std::string>(message.getDESTINATION())) + "', " +
 				"to_timestamp(" + boost::lexical_cast<std::string>(message.getETA()) + "), " +
 				boost::lexical_cast<std::string>(message.getPOSFIXTYPE()) + ", " + 
-				+ "'" + sanitize(boost::lexical_cast<std::string>(message.getSTREAMID())) + "')";
+				"'" + sanitize(boost::lexical_cast<std::string>(message.getSTREAMID())) + "')";
 
-			//cout << m_sqlStatement << endl;
+			//cout <<m_staticSQLStatement << endl;
 			if(m_staticIteration++ == m_iterations || m_iterations <= 0)
 			{
 				m_staticIteration = 1;
@@ -301,7 +310,54 @@ private:
 			return false;
 		}
 	}
+	string genUniqueID(string mmsi, string imo, string callsign, string vesselname)
+	{
+		int MAX_MMSI_LEN = 10;
+		int MAX_IMO_LEN = 10;
+		int MAX_CALL_SIGN_LEN = 7;
+		int MAX_VESSEL_NAME_LEN = 20;
+		
+		string temp, uniqueID;
 
+		temp = mmsi;
+		boost::algorithm::trim(temp); // trim whitespace before and after string
+		boost::algorithm::erase_all(temp, " "); // remove all whitespaces in string
+		uniqueID = fillString(temp, MAX_MMSI_LEN); // insert fill characters up to maximum allowed string size
+
+		temp = imo;
+		boost::algorithm::trim(temp);
+		boost::algorithm::erase_all(temp, " "); // remove all whitespaces in string
+		uniqueID += fillString(temp, MAX_IMO_LEN);
+		
+		temp = callsign;
+		boost::algorithm::trim(temp);
+		boost::algorithm::erase_all(temp, " "); // remove all whitespaces in string
+		uniqueID += fillString(temp, MAX_CALL_SIGN_LEN);
+
+		temp = vesselname;
+		boost::algorithm::trim(temp);
+		boost::algorithm::erase_all(temp, " "); // remove all whitespaces in string
+		uniqueID += fillString(temp, MAX_VESSEL_NAME_LEN);
+
+		return(uniqueID);
+	}
+	string fillString(string input, int MAX_LEN)
+	{
+		int fillLen;
+		char DEFAULT_FILL = '|';
+		string outputString;
+		outputString.append(input);
+		if (outputString.length() < MAX_LEN)
+		{
+			fillLen = MAX_LEN - outputString.length();
+			outputString.append(fillLen, DEFAULT_FILL);
+		} else if (outputString.length() > MAX_LEN)
+		{
+			cerr << "Error in fillString length check: " << outputString.length() << " > " << MAX_LEN  << " string = " << outputString << endl;
+			exit(1);
+		}
+		return(outputString);
+	}
 	/*
 	bool writeTargetEntry(const AisMessage& message)
 	{
