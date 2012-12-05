@@ -273,132 +273,17 @@ private:
 			pqxx::result r = w.exec(m_query);
 			//cout << "RESULT IS: " << r.size() << endl;	//result size should only be 1 row if below is implemented completely
 
-			if (r.size() == 0)		// No existing unique ID, so simply push a new static message row.
+			if (r.size() == 0)		// No existing unique ID, check for special cases, otherwise simply push new entry
 			{
-				//aisDebug("Unique ID does not exist, pushing new static vessel row");
+				//Check for special cases
 
-				//Check iteration number
-				if(m_staticIteration == 1 || m_iterations <= 0)
-				{
-					m_staticSQLStatement = "INSERT INTO " + m_staticTableName + " VALUES(DEFAULT, ";
-				}
-				else
-				{
-					m_staticSQLStatement+= ", (DEFAULT, ";
-				}
-
-				//Build the static SQL statement
-				m_staticSQLStatement +=
-					version + "," +
-					"'" + unique_ID + "'," +
-					"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
-					"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
-					boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
-					mmsi + ", " +
-					imo + ", " +
-					"'" + callsign + "', " + 
-					"'" + vesselname + "', " +
-					boost::lexical_cast<std::string>(message.getVESSELTYPEINT()) + ", " +
-					boost::lexical_cast<std::string>(message.getBOW()) + ", " +
-					boost::lexical_cast<std::string>(message.getPORT()) + ", " +
-					boost::lexical_cast<std::string>(message.getSTARBOARD()) + ", " +
-					boost::lexical_cast<std::string>(message.getSTERN()) + ", " +
-					boost::lexical_cast<std::string>(message.getSHIPLENGTH()) + ", " +
-					boost::lexical_cast<std::string>(message.getSHIPWIDTH()) + ", " +
-					boost::lexical_cast<std::string>(message.getDRAUGHT()) + ", " +
-					"'" + sanitize(boost::lexical_cast<std::string>(message.getDESTINATION())) + "', " +
-					"to_timestamp(" + boost::lexical_cast<std::string>(message.getETA()) + "), " +
-					boost::lexical_cast<std::string>(message.getPOSFIXTYPE()) + ", " + 
-					"'" + sanitize(boost::lexical_cast<std::string>(message.getSTREAMID())) + "')";
-
-				//cout <<m_staticSQLStatement << endl;
-				if(m_staticIteration++ == m_iterations || m_iterations <= 0)
-				{
-					m_staticIteration = 1;	//Reset iteration number
-
-					//aisDebug("executing multirow insert start");
-					StatementExecutor statementExecutor(m_staticSQLStatement);
-					m_con->perform(statementExecutor);	//execute the statement
-					m_staticSQLStatement = string("");	//reset the statement
-					//aisDebug("executing multirow insert end");
-				}
-				return true;
+				//Push new entry
+				return addNewStaticEntry(message, version, mmsi, imo, callsign, vesselname, unique_ID);
 			}
 			else	// Unique ID exists in table, so do some matching
 			{
-				aisDebug("Unique ID exists, need to check for changes");
-
-				pqxx::tuple row = r[0];		//extract a single row of the result
-
-				//Do the check for differences
-
-				/*	CAN'T CHECK FOR NAME, CALLSIGN, IMO, OR MMSI CHANGES BECAUSE THIS WILL CREATE A DIFFERENT UNIQUE ID THAN THE EXISTING ONE
-				string old_vessel_name = row["vessel_name"].c_str();
-				if (old_vessel_name != message.getVESSELNAME())
-				{
-					aisDebug("Vessel name has changed: \"" << message.getVESSELNAME() << "\" --> \"" << row["vessel_name"] << "\"");
-					//Do change update and push to change table
-				}
-				*/
-
-				if (atoi(row["vessel_type"].c_str()) != message.getVESSELTYPEINT())
-				{
-					aisDebug("Vessel type has changed: \"" << message.getVESSELTYPEINT() << "\" --> \"" << row["vessel_type"] << "\"");
-					//Do change update and push to change table
-				}
-				if (atoi(row["antenna_position_bow"].c_str()) != message.getBOW())
-				{
-					aisDebug("Vessel antenna position to bow changed");
-					//Do change update and push to change table
-				}
-				if (atoi(row["antenna_position_stern"].c_str()) != message.getSTERN())
-				{
-					aisDebug("Vessel antenna position to stern changed");
-					//Do change update and push to change table
-				}
-				if (atoi(row["antenna_position_port"].c_str()) != message.getPORT())
-				{
-					aisDebug("Vessel antenna position to port changed");
-					//Do change update and push to change table
-				}
-				if (atoi(row["antenna_position_starboard"].c_str()) != message.getSTARBOARD())
-				{
-					aisDebug("Vessel antenna position to starboard changed");
-					//Do change update and push to change table
-				}
-				if (atoi(row["length"].c_str()) != message.getSHIPLENGTH())
-				{
-					aisDebug("Vessel length changed");
-					//Do change update and push to change table
-				}
-				if (atoi(row["width"].c_str()) != message.getSHIPWIDTH())
-				{
-					aisDebug("Vessel width changed");
-					//Do change update and push to change table
-				}
-				if (atoi(row["draught"].c_str()) != message.getDRAUGHT())
-				{
-					aisDebug("Vessel draught changed");
-					//Do change update and push to change table
-				}
-				string old_destination = row["destination"].c_str();
-				if (old_destination != message.getDESTINATION())
-				{
-					aisDebug("Vessel destination changed");
-					//Do change update and push to change table
-				}
-				if (atoi(row["eta"].c_str()) != message.getETA())
-				{
-					aisDebug("Vessel ETA has changed: \"" << message.getETA() << "\" --> \"" << row["eta"] << "\"");
-					//Do change update and push to change table
-				}
-				/*
-				if (atoi(row["epfd"].c_str()) != message.getEPFD())
-				{
-					aisDebug("Vessel EPFD changed");
-					//Do change update and push to change table
-				}
-				*/
+				//Check for changes in existing entry with matching unique ID
+				return checkStaticChanges(message, version, mmsi, imo, callsign, vesselname, unique_ID, r);
 			}
 		}
 		catch(const exception &e)
@@ -410,15 +295,150 @@ private:
 	}
 
 	/**
-	 Unique vessel ID generator
+	 Add a new static entry
 	 */
+	bool addNewStaticEntry(const AisMessage& message, string version, string mmsi, string imo, string callsign, string vesselname, string unique_ID)
+	{
+		//aisDebug("Unique ID does not exist, pushing new static vessel row");
+
+		//Check iteration number
+		if(m_staticIteration == 1 || m_iterations <= 0)
+		{
+			m_staticSQLStatement = "INSERT INTO " + m_staticTableName + " VALUES(DEFAULT, ";
+		}
+		else
+		{
+			m_staticSQLStatement+= ", (DEFAULT, ";
+		}
+
+		//Build the static SQL statement
+		m_staticSQLStatement +=
+				version + "," +
+				"'" + unique_ID + "'," +
+				"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
+				"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
+				boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
+				mmsi + ", " +
+				imo + ", " +
+				"'" + callsign + "', " + 
+				"'" + vesselname + "', " +
+				boost::lexical_cast<std::string>(message.getVESSELTYPEINT()) + ", " +
+				boost::lexical_cast<std::string>(message.getBOW()) + ", " +
+				boost::lexical_cast<std::string>(message.getPORT()) + ", " +
+				boost::lexical_cast<std::string>(message.getSTARBOARD()) + ", " +
+				boost::lexical_cast<std::string>(message.getSTERN()) + ", " +
+				boost::lexical_cast<std::string>(message.getSHIPLENGTH()) + ", " +
+				boost::lexical_cast<std::string>(message.getSHIPWIDTH()) + ", " +
+				boost::lexical_cast<std::string>(message.getDRAUGHT()) + ", " +
+				"'" + sanitize(boost::lexical_cast<std::string>(message.getDESTINATION())) + "', " +
+				"to_timestamp(" + boost::lexical_cast<std::string>(message.getETA()) + "), " +
+				boost::lexical_cast<std::string>(message.getPOSFIXTYPE()) + ", " + 
+				"'" + sanitize(boost::lexical_cast<std::string>(message.getSTREAMID())) + "')";
+
+		//cout <<m_staticSQLStatement << endl;
+		if(m_staticIteration++ == m_iterations || m_iterations <= 0)
+		{
+			m_staticIteration = 1;	//Reset iteration number
+
+			//aisDebug("executing multirow insert start");
+			StatementExecutor statementExecutor(m_staticSQLStatement);
+			m_con->perform(statementExecutor);	//execute the statement
+			m_staticSQLStatement = string("");	//reset the statement
+			//aisDebug("executing multirow insert end");
+		}
+		return true;
+	}
+
+	/**
+	 Check for changes in the static entry with matching unique ID
+	 */
+	bool checkStaticChanges(const AisMessage& message, string version, string mmsi, string imo, string callsign, string vesselname, string unique_ID, pqxx::result r)
+	{
+		aisDebug("Unique ID exists, need to check for changes");
+
+		pqxx::tuple row = r[0];		//extract a single row of the result
+
+		//Do the check for differences
+
+		/*	CAN'T CHECK FOR NAME, CALLSIGN, IMO, OR MMSI CHANGES BECAUSE THIS WILL CREATE A DIFFERENT UNIQUE ID THAN THE EXISTING ONE
+		string old_vessel_name = row["vessel_name"].c_str();
+		if (old_vessel_name != message.getVESSELNAME())
+		{
+		aisDebug("Vessel name has changed: \"" << message.getVESSELNAME() << "\" --> \"" << row["vessel_name"] << "\"");
+		//Do change update and push to change table
+		}
+		*/
+
+		if (atoi(row["vessel_type"].c_str()) != message.getVESSELTYPEINT())
+		{
+			aisDebug("Vessel type has changed: \"" << message.getVESSELTYPEINT() << "\" --> \"" << row["vessel_type"] << "\"");
+			//Do change update and push to change table
+		}
+		if (atoi(row["antenna_position_bow"].c_str()) != message.getBOW())
+		{
+			aisDebug("Vessel antenna position to bow changed");
+			//Do change update and push to change table
+		}
+		if (atoi(row["antenna_position_stern"].c_str()) != message.getSTERN())
+		{
+			aisDebug("Vessel antenna position to stern changed");
+			//Do change update and push to change table
+		}
+		if (atoi(row["antenna_position_port"].c_str()) != message.getPORT())
+		{
+			aisDebug("Vessel antenna position to port changed");
+			//Do change update and push to change table
+		}
+		if (atoi(row["antenna_position_starboard"].c_str()) != message.getSTARBOARD())
+		{
+			aisDebug("Vessel antenna position to starboard changed");
+			//Do change update and push to change table
+		}
+		if (atoi(row["length"].c_str()) != message.getSHIPLENGTH())
+		{
+			aisDebug("Vessel length changed");
+			//Do change update and push to change table
+		}
+		if (atoi(row["width"].c_str()) != message.getSHIPWIDTH())
+		{
+			aisDebug("Vessel width changed");
+			//Do change update and push to change table
+		}
+		if (atoi(row["draught"].c_str()) != message.getDRAUGHT())
+		{
+			aisDebug("Vessel draught changed");
+			//Do change update and push to change table
+		}
+		string old_destination = row["destination"].c_str();
+		if (old_destination != message.getDESTINATION())
+		{
+			aisDebug("Vessel destination changed");
+			//Do change update and push to change table
+		}
+		if (atoi(row["eta"].c_str()) != message.getETA())
+		{
+			aisDebug("Vessel ETA has changed: \"" << message.getETA() << "\" --> \"" << row["eta"] << "\"");
+			//Do change update and push to change table
+		}
+		/*
+		if (atoi(row["epfd"].c_str()) != message.getEPFD())
+		{
+		aisDebug("Vessel EPFD changed");
+		//Do change update and push to change table
+		}
+		*/
+	}
+
+	/**
+	Unique vessel ID generator
+	*/
 	string genUniqueID(string mmsi, string imo, string callsign, string vesselname)
 	{
 		int MAX_MMSI_LEN = 10;
 		int MAX_IMO_LEN = 10;
 		int MAX_CALL_SIGN_LEN = 7;
 		int MAX_VESSEL_NAME_LEN = 20;
-		
+
 		string temp, uniqueID;
 
 		temp = mmsi;
@@ -430,7 +450,7 @@ private:
 		boost::algorithm::trim(temp);
 		boost::algorithm::erase_all(temp, " "); // remove all whitespaces in string
 		uniqueID += fillString(temp, MAX_IMO_LEN);
-		
+
 		temp = callsign;
 		boost::algorithm::trim(temp);
 		boost::algorithm::erase_all(temp, " "); // remove all whitespaces in string
