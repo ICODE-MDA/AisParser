@@ -50,7 +50,7 @@ public:
 		{
 			try
 			{
-				aisDebug("trying to execute update any remaining entries");
+				aisDebug("trying to execute update any remaining static entries");
 
 				if(m_staticSQLStatement != "")
 				{
@@ -71,7 +71,7 @@ public:
 
 			try
 			{
-				aisDebug("trying to execute update any remaining entries");
+				aisDebug("trying to execute update any remaining dynamic entries");
 
 				if(m_dynamicSQLStatement != "")
 				{
@@ -188,7 +188,9 @@ private:
 
 	}
 
-
+	/**
+	 Write dynamic entry 
+	 */
 	bool writeDynamicEntry(const AisMessage& message)
 	{
 		string version = "'TEST'";
@@ -204,22 +206,22 @@ private:
 				m_dynamicSQLStatement+= ", (DEFAULT, ";
 			}
 			m_dynamicSQLStatement +=
-				version + "," + 
-				boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
-				boost::lexical_cast<std::string>(message.getMMSI()) + ", " +
-				boost::lexical_cast<std::string>(message.getNAVSTATUS()) + ", " + 
-				boost::lexical_cast<std::string>(message.getROT()) + ", " + 
-				boost::lexical_cast<std::string>(message.getSOG()) + ", " +
-				boost::lexical_cast<std::string>(message.getPOSACCURACY()) + ", " +
-				// Postgresql geography type 4326 (WGS projection ) is used for lat. and lon. which cover large areas
-				"ST_SetSRID(ST_Point(" +
-				  boost::lexical_cast<std::string>(message.getLON()) + ", " +
-				  boost::lexical_cast<std::string>(message.getLAT()) + "),4326)::geography, " +
-				boost::lexical_cast<std::string>(message.getCOG()) + ", " +
-				boost::lexical_cast<std::string>(message.getTRUE_HEADING()) + ", " +
-				"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
-				"'" + sanitize(boost::lexical_cast<std::string>(message.getSTREAMID()))+ "')";
-				
+					version + "," + 
+					boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
+					boost::lexical_cast<std::string>(message.getMMSI()) + ", " +
+					boost::lexical_cast<std::string>(message.getNAVSTATUS()) + ", " + 
+					boost::lexical_cast<std::string>(message.getROT()) + ", " + 
+					boost::lexical_cast<std::string>(message.getSOG()) + ", " +
+					boost::lexical_cast<std::string>(message.getPOSACCURACY()) + ", " +
+					// Postgresql geography type 4326 (WGS projection ) is used for lat. and lon. which cover large areas
+					"ST_SetSRID(ST_Point(" +
+					  boost::lexical_cast<std::string>(message.getLON()) + ", " +
+					  boost::lexical_cast<std::string>(message.getLAT()) + "),4326)::geography, " +
+					boost::lexical_cast<std::string>(message.getCOG()) + ", " +
+					boost::lexical_cast<std::string>(message.getTRUE_HEADING()) + ", " +
+					"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
+					"'" + sanitize(boost::lexical_cast<std::string>(message.getSTREAMID()))+ "')";
+					
 			//cout << m_dynamicSQLStatement << endl;
 			if(m_dynamicIteration++ == m_iterations || m_iterations <= 0)
 			{
@@ -229,7 +231,7 @@ private:
 				StatementExecutor statementExecutor(m_dynamicSQLStatement);
 				m_con->perform(statementExecutor);
 				m_dynamicSQLStatement = string("");
-				aisDebug("executing multirow insert end");
+				//aisDebug("executing multirow insert end");
 			}
 			return true;
 		}
@@ -242,66 +244,162 @@ private:
 		}
 	}
 
+	/**
+	 Write static entry
+	 */
 	bool writeStaticEntry(const AisMessage& message)
 	{
 		string version = "'TEST'";
-		string unique_ID = "'TESTUNIQUEID123'";
-		string mmsi, imo, callsign, vesselname;
+		string mmsi, imo, callsign, vesselname, unique_ID;
+
 		try
 		{	
-			if(m_staticIteration == 1 || m_iterations <= 0)
-			{
-				m_staticSQLStatement = "INSERT INTO " + m_staticTableName + " VALUES(DEFAULT, ";
-			}
-			else
-			{
-				m_staticSQLStatement+= ", (DEFAULT, ";
-			}
+			//Generate unique ID using the 4 fields
 			mmsi = boost::lexical_cast<std::string>(message.getMMSI());
 			imo = boost::lexical_cast<std::string>(message.getIMO());;
 			callsign = sanitize(boost::lexical_cast<std::string>(message.getCALLSIGN()));
 			vesselname = sanitize(boost::lexical_cast<std::string>(message.getVESSELNAME()));
-			
 			unique_ID = genUniqueID(mmsi, imo, callsign, vesselname);
-			//cout << "mmsi " << mmsi << "imo " << imo << "callsign " << callsign << "vesselname " << vesselname << endl;
-			//cout << "unqiue_ID " << unique_ID << endl;
 
-			m_staticSQLStatement +=
-				version + "," +
-				"'" + unique_ID + "'," +
-				"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
-				"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
-				boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
-				mmsi + ", " +
-				imo + ", " +
-				"'" + callsign + "', " + 
-				"'" + vesselname + "', " +
-				boost::lexical_cast<std::string>(message.getVESSELTYPEINT()) + ", " +
-				boost::lexical_cast<std::string>(message.getBOW()) + ", " +
-				boost::lexical_cast<std::string>(message.getPORT()) + ", " +
-				boost::lexical_cast<std::string>(message.getSTARBOARD()) + ", " +
-				boost::lexical_cast<std::string>(message.getSTERN()) + ", " +
-				boost::lexical_cast<std::string>(message.getSHIPLENGTH()) + ", " +
-				boost::lexical_cast<std::string>(message.getSHIPWIDTH()) + ", " +
-				boost::lexical_cast<std::string>(message.getDRAUGHT()) + ", " +
-				"'" + sanitize(boost::lexical_cast<std::string>(message.getDESTINATION())) + "', " +
-				"to_timestamp(" + boost::lexical_cast<std::string>(message.getETA()) + "), " +
-				boost::lexical_cast<std::string>(message.getPOSFIXTYPE()) + ", " + 
-				"'" + sanitize(boost::lexical_cast<std::string>(message.getSTREAMID())) + "')";
+			//Check if current unique ID exists in the table already
+			string m_query = "SELECT message_type, mmsi, imo, callsign, vessel_name, vessel_type, antenna_position_bow, ";
+			m_query += "antenna_position_stern, antenna_position_port, antenna_position_starboard, length, width, draught, ";
+			m_query += "destination, extract(epoch from eta) as eta, epfd FROM " + m_staticTableName + " WHERE UNIQUE_ID = '" + unique_ID + "'";
 
-			//cout <<m_staticSQLStatement << endl;
-			if(m_staticIteration++ == m_iterations || m_iterations <= 0)
+			//Try connecting using non-transaction method in order to obtain query results
+			std::string connection_string = "user=" + m_username + " password=" + m_password + " dbname=" + m_databaseName + " hostaddr=" + m_hostname;
+			pqxx::connection c(connection_string);
+			pqxx::work w(c);
+			pqxx::result r = w.exec(m_query);
+			//cout << "RESULT IS: " << r.size() << endl;	//result size should only be 1 row if below is implemented completely
+
+			if (r.size() == 0)		// No existing unique ID, so simply push a new static message row.
 			{
-				m_staticIteration = 1;
+				//aisDebug("Unique ID does not exist, pushing new static vessel row");
 
-				//aisDebug("executing multirow insert start");
-				StatementExecutor statementExecutor(m_staticSQLStatement);
-				m_con->perform(statementExecutor);
-				m_staticSQLStatement = string("");
-				//aisDebug("executing multirow insert end");
+				//Check iteration number
+				if(m_staticIteration == 1 || m_iterations <= 0)
+				{
+					m_staticSQLStatement = "INSERT INTO " + m_staticTableName + " VALUES(DEFAULT, ";
+				}
+				else
+				{
+					m_staticSQLStatement+= ", (DEFAULT, ";
+				}
+
+				//Build the static SQL statement
+				m_staticSQLStatement +=
+					version + "," +
+					"'" + unique_ID + "'," +
+					"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
+					"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
+					boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
+					mmsi + ", " +
+					imo + ", " +
+					"'" + callsign + "', " + 
+					"'" + vesselname + "', " +
+					boost::lexical_cast<std::string>(message.getVESSELTYPEINT()) + ", " +
+					boost::lexical_cast<std::string>(message.getBOW()) + ", " +
+					boost::lexical_cast<std::string>(message.getPORT()) + ", " +
+					boost::lexical_cast<std::string>(message.getSTARBOARD()) + ", " +
+					boost::lexical_cast<std::string>(message.getSTERN()) + ", " +
+					boost::lexical_cast<std::string>(message.getSHIPLENGTH()) + ", " +
+					boost::lexical_cast<std::string>(message.getSHIPWIDTH()) + ", " +
+					boost::lexical_cast<std::string>(message.getDRAUGHT()) + ", " +
+					"'" + sanitize(boost::lexical_cast<std::string>(message.getDESTINATION())) + "', " +
+					"to_timestamp(" + boost::lexical_cast<std::string>(message.getETA()) + "), " +
+					boost::lexical_cast<std::string>(message.getPOSFIXTYPE()) + ", " + 
+					"'" + sanitize(boost::lexical_cast<std::string>(message.getSTREAMID())) + "')";
+
+				//cout <<m_staticSQLStatement << endl;
+				if(m_staticIteration++ == m_iterations || m_iterations <= 0)
+				{
+					m_staticIteration = 1;	//Reset iteration number
+
+					//aisDebug("executing multirow insert start");
+					StatementExecutor statementExecutor(m_staticSQLStatement);
+					m_con->perform(statementExecutor);	//execute the statement
+					m_staticSQLStatement = string("");	//reset the statement
+					//aisDebug("executing multirow insert end");
+				}
+				return true;
 			}
-			return true;
+			else	// Unique ID exists in table, so do some matching
+			{
+				aisDebug("Unique ID exists, need to check for changes");
 
+				pqxx::tuple row = r[0];		//extract a single row of the result
+
+				//Do the check for differences
+
+				/*	CAN'T CHECK FOR NAME, CALLSIGN, IMO, OR MMSI CHANGES BECAUSE THIS WILL CREATE A DIFFERENT UNIQUE ID THAN THE EXISTING ONE
+				string old_vessel_name = row["vessel_name"].c_str();
+				if (old_vessel_name != message.getVESSELNAME())
+				{
+					aisDebug("Vessel name has changed: \"" << message.getVESSELNAME() << "\" --> \"" << row["vessel_name"] << "\"");
+					//Do change update and push to change table
+				}
+				*/
+
+				if (atoi(row["vessel_type"].c_str()) != message.getVESSELTYPEINT())
+				{
+					aisDebug("Vessel type has changed: \"" << message.getVESSELTYPEINT() << "\" --> \"" << row["vessel_type"] << "\"");
+					//Do change update and push to change table
+				}
+				if (atoi(row["antenna_position_bow"].c_str()) != message.getBOW())
+				{
+					aisDebug("Vessel antenna position to bow changed");
+					//Do change update and push to change table
+				}
+				if (atoi(row["antenna_position_stern"].c_str()) != message.getSTERN())
+				{
+					aisDebug("Vessel antenna position to stern changed");
+					//Do change update and push to change table
+				}
+				if (atoi(row["antenna_position_port"].c_str()) != message.getPORT())
+				{
+					aisDebug("Vessel antenna position to port changed");
+					//Do change update and push to change table
+				}
+				if (atoi(row["antenna_position_starboard"].c_str()) != message.getSTARBOARD())
+				{
+					aisDebug("Vessel antenna position to starboard changed");
+					//Do change update and push to change table
+				}
+				if (atoi(row["length"].c_str()) != message.getSHIPLENGTH())
+				{
+					aisDebug("Vessel length changed");
+					//Do change update and push to change table
+				}
+				if (atoi(row["width"].c_str()) != message.getSHIPWIDTH())
+				{
+					aisDebug("Vessel width changed");
+					//Do change update and push to change table
+				}
+				if (atoi(row["draught"].c_str()) != message.getDRAUGHT())
+				{
+					aisDebug("Vessel draught changed");
+					//Do change update and push to change table
+				}
+				string old_destination = row["destination"].c_str();
+				if (old_destination != message.getDESTINATION())
+				{
+					aisDebug("Vessel destination changed");
+					//Do change update and push to change table
+				}
+				if (atoi(row["eta"].c_str()) != message.getETA())
+				{
+					aisDebug("Vessel ETA has changed: \"" << message.getETA() << "\" --> \"" << row["eta"] << "\"");
+					//Do change update and push to change table
+				}
+				/*
+				if (atoi(row["epfd"].c_str()) != message.getEPFD())
+				{
+					aisDebug("Vessel EPFD changed");
+					//Do change update and push to change table
+				}
+				*/
+			}
 		}
 		catch(const exception &e)
 		{
@@ -310,6 +408,10 @@ private:
 			return false;
 		}
 	}
+
+	/**
+	 Unique vessel ID generator
+	 */
 	string genUniqueID(string mmsi, string imo, string callsign, string vesselname)
 	{
 		int MAX_MMSI_LEN = 10;
@@ -341,6 +443,7 @@ private:
 
 		return(uniqueID);
 	}
+
 	string fillString(string input, int MAX_LEN)
 	{
 		int fillLen;
@@ -458,11 +561,14 @@ private:
 
 	class StatementExecutor : public pqxx::transactor<>
 	{
+	private:
 		const std::string* m_statement;
 	public:
-		StatementExecutor(const std::string& statement):
-		pqxx::transactor<>("StatementExecutor"), m_statement(&statement)
-		{}
+		//Constructor
+		StatementExecutor(const std::string& statement) : pqxx::transactor<>("StatementExecutor"), 
+			m_statement(&statement)
+		{
+		}
 
 		void operator()(argument_type &T)
 		{
