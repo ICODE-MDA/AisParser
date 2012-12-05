@@ -262,7 +262,7 @@ private:
 			unique_ID = genUniqueID(mmsi, imo, callsign, vesselname);
 
 			//Check if current unique ID exists in the table already
-			string m_query = "SELECT message_type, mmsi, imo, callsign, vessel_name, vessel_type, antenna_position_bow, ";
+			string m_query = "SELECT ais_static_id, message_type, mmsi, imo, callsign, vessel_name, vessel_type, antenna_position_bow, ";
 			m_query += "antenna_position_stern, antenna_position_port, antenna_position_starboard, length, width, draught, ";
 			m_query += "destination, extract(epoch from eta) as eta, epfd FROM " + m_staticTableName + " WHERE UNIQUE_ID = '" + unique_ID + "'";
 
