@@ -256,18 +256,18 @@ private:
 			//Generate unique ID using the 4 fields
 			mmsi = boost::lexical_cast<std::string>(message.getMMSI());
 			imo = boost::lexical_cast<std::string>(message.getIMO());;
-			callsign = sanitize(boost::lexical_cast<std::string>(message.getCALLSIGN()));
-			vesselname = sanitize(boost::lexical_cast<std::string>(message.getVESSELNAME()));
+			callsign = boost::lexical_cast<std::string>(message.getCALLSIGN());
+			vesselname = boost::lexical_cast<std::string>(message.getVESSELNAME());	//use sanitize function to prevent escape characters in string
 			unique_ID = genUniqueID(mmsi, imo, callsign, vesselname);
 
 			//Check if current unique ID exists in the table already
 			string m_query = "SELECT ais_static_id, extract(epoch from latest_timestamp) as latest_timestamp,";
 			m_query +=	"message_type, mmsi, imo, callsign, vessel_name, vessel_type, antenna_position_bow, ";
 			m_query += "antenna_position_stern, antenna_position_port, antenna_position_starboard, length, width, draught, ";
-			m_query += "destination, extract(epoch from eta) as eta, epfd FROM " + m_staticTableName + " WHERE UNIQUE_ID = '" + unique_ID + "'";
+			m_query += "destination, extract(epoch from eta) as eta, epfd FROM " + m_staticTableName + " WHERE UNIQUE_ID = '" + sanitize(unique_ID) + "'";
 			
 			//Try connecting using non-transaction method in order to obtain query results
-			std::string connection_string = "user=" + m_username + " password=" + m_password + " dbname=" + m_databaseName + " hostaddr=" + m_hostname;
+			string connection_string = "user=" + m_username + " password=" + m_password + " dbname=" + m_databaseName + " hostaddr=" + m_hostname;
 			pqxx::connection c(connection_string);
 			pqxx::work w(c);
 			pqxx::result r = w.exec(m_query);
@@ -276,9 +276,11 @@ private:
 			if (r.size() == 0)		// No existing unique ID, check for special cases, otherwise simply push new entry
 			{
 				//Check for special cases
-
-				//Push new entry
-				return addNewStaticEntry(message, version, mmsi, imo, callsign, vesselname, unique_ID);
+				if (!checkSpecialCasesChanged(message, version, mmsi, imo, callsign, vesselname, unique_ID, r))
+				{
+					//Push new entry
+					return addNewStaticEntry(message, version, mmsi, imo, callsign, vesselname, unique_ID);
+				}
 			}
 			else	// Unique ID exists in table, so do some matching
 			{
@@ -297,6 +299,116 @@ private:
 			cerr << "PostgreSQL Error : " << e.what() << endl;
 			return false;
 		}
+	}
+
+	/**
+	 Check if special cases matches any existing unique IDs
+	 */
+	bool checkSpecialCasesChanged(const AisMessage& message, string version, string mmsi, string imo, string callsign, string vesselname, string unique_ID, pqxx::result r)
+	{
+		string test_unique_ID;
+		string connection_string = "user=" + m_username + " password=" + m_password + " dbname=" + m_databaseName + " hostaddr=" + m_hostname;
+		string test_query;
+		string update_record;
+		pqxx::connection c(connection_string);
+		pqxx::work w(c);
+		pqxx::result test_result;
+
+		pqxx::tuple row = r[0];		//extract a single row of the result
+
+		//--------test creating new entry if anything is different-----------------
+		
+
+		/*
+		//Check for special case MMSI --------------------------------------
+		// test case 0
+		test_unique_ID = genUniqueID("0", imo, callsign, vesselname);
+		test_query = "SELECT * FROM " + m_staticTableName + " WHERE UNIQUE_ID = '" + test_unique_ID + "'";
+		test_result = w.exec(test_query);
+		if (test_result.size() != 0)
+		{
+			aisDebug("Turns out, this is not unique! Need to do matching");
+			//TODO: match data
+			return true;
+		}
+
+		// test case -1
+		test_unique_ID = genUniqueID("-1", imo, callsign, vesselname);
+		test_query = "SELECT * FROM " + m_staticTableName + " WHERE UNIQUE_ID = '" + test_unique_ID + "'";
+		test_result = w.exec(test_query);
+		if (test_result.size() != 0)
+		{
+			aisDebug("Turns out, this is not unique! Need to do matching");
+			//TODO: match data
+			return true;
+		}
+
+		//Check for special case IMO ---------------------------------------
+		// test case 0
+		test_unique_ID = genUniqueID(mmsi, "0", callsign, vesselname);
+		test_query = "SELECT * FROM " + m_staticTableName + " WHERE UNIQUE_ID = '" + test_unique_ID + "'";
+		test_result = w.exec(test_query);
+		if (test_result.size() != 0)
+		{
+			aisDebug("Turns out, this is not unique! Need to do matching");
+			//TODO: match data
+			return true;
+		}
+
+		// test case -1
+		test_unique_ID = genUniqueID(mmsi, "-1", callsign, vesselname);
+		test_query = "SELECT * FROM " + m_staticTableName + " WHERE UNIQUE_ID = '" + test_unique_ID + "'";
+		test_result = w.exec(test_query);
+		if (test_result.size() != 0)
+		{
+			aisDebug("Turns out, this is not unique! Need to do matching");
+			//TODO: match data
+			return true;
+		}
+
+		//Check for special case CALLSIGN ----------------------------------
+		// test case ""
+		test_unique_ID = genUniqueID(mmsi, imo, "", vesselname);
+		test_query = "SELECT * FROM " + m_staticTableName + " WHERE UNIQUE_ID = '" + test_unique_ID + "'";
+		test_result = w.exec(test_query);
+		if (test_result.size() != 0)
+		{
+			aisDebug("Turns out, this is not unique! Need to do matching");
+			//TODO: match data
+			return true;
+		}
+
+		//Check for special case VESSEL NAMES ------------------------------
+		// test case "" (blank name)
+		test_unique_ID = genUniqueID(mmsi, imo, callsign, "");
+		test_query = "SELECT * FROM " + m_staticTableName + " WHERE UNIQUE_ID = '" + test_unique_ID + "'";
+		test_result = w.exec(test_query);
+		if (test_result.size() != 0)
+		{
+			aisDebug("Turns out, this is not unique! Need to do matching");
+			//TODO: match data
+			pqxx::tuple row = test_result[0];
+			//TODO: call Lynne's update function for each field update
+			//Update vessel name
+			update_record = "UPDATE " + m_staticTableName + " SET vessel_name = '" + vesselname + "' WHERE ais_static_id = " + row["ais_static_id"].c_str() + ";";
+			//Update unique_id
+			update_record = "UPDATE " + m_staticTableName + " SET unique_id = '" + test_unique_ID + "' WHERE ais_static_id = " + row["ais_static_id"].c_str() + ";";
+			//Update latest_timestamp
+			update_record = "UPDATE " + m_staticTableName + " SET latest_timestamp = " + "to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " + " WHERE ais_static_id = " + row["ais_static_id"].c_str() + ";";
+
+			aisDebug(update_record);
+			w.exec(update_record);
+			w.commit();
+			aisDebug("Record updated.");
+			return true;
+		}
+
+		//TODO: Update other fields if updated anything above (messagetype, vesseltype, ant positions, length, width, draught, eta, epfd, messagesourceid)
+
+		*/
+
+		//No special case change (truely new static entry)
+		return false;
 	}
 
 	/**
@@ -325,8 +437,8 @@ private:
 				boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
 				mmsi + ", " +
 				imo + ", " +
-				"'" + callsign + "', " + 
-				"'" + vesselname + "', " +
+				"'" + sanitize(callsign) + "', " + 
+				"'" + sanitize(vesselname) + "', " +
 				boost::lexical_cast<std::string>(message.getVESSELTYPEINT()) + ", " +
 				boost::lexical_cast<std::string>(message.getBOW()) + ", " +
 				boost::lexical_cast<std::string>(message.getPORT()) + ", " +
