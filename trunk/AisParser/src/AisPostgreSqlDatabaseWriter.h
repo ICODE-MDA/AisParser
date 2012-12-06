@@ -28,15 +28,18 @@ class AisPostgreSqlDatabaseWriter : public AisWriter{
 public:
 	AisPostgreSqlDatabaseWriter(std::string username, std::string password, std::string hostname, std::string databaseName, std::string staticTableName, std::string dynamicTableName, int iterations = 100000):
 	m_con(static_cast<pqxx::connection*>(0)),
-		m_staticIteration(1),
-		m_dynamicIteration(1),
 		m_username(username),
 		m_password(password),
 		m_hostname(hostname),
 		m_databaseName(databaseName),
 		m_staticTableName(staticTableName),
 		m_dynamicTableName(dynamicTableName),
-		m_iterations(iterations),
+		m_staticMaxIterations(1),
+		m_dynamicMaxIterations(iterations),
+		m_changeMaxIterations(iterations),
+		m_staticIteration(0),
+		m_dynamicIteration(0),
+		m_changeIteration(0),
 		m_staticSQLStatement(""),
 		m_dynamicSQLStatement("")
 	{
@@ -156,7 +159,8 @@ private:
 			std::string connection_string = "user=" + m_username + " password=" + m_password + " dbname=" + m_databaseName + " hostaddr=" + m_hostname;
 			m_con = std::shared_ptr<pqxx::connection>(new pqxx::connection(connection_string));
 			
-			if(!m_con){
+			if(!m_con)
+			{
 				throw std::runtime_error("Could not create PostgreSql connection");
 			}
 
@@ -178,7 +182,9 @@ private:
 			} 
 
 
-		}catch (std::exception &e){
+		}
+		catch (std::exception &e) 
+		{
 			std::cerr << "Exception: " << e.what() << std::endl;
 			return false;
 		}
@@ -197,7 +203,7 @@ private:
 		
 		try
 		{	
-			if(m_dynamicIteration == 1 || m_iterations <= 0)
+			if(m_dynamicIteration == 1 || m_dynamicMaxIterations <= 0)
 			{
 				m_dynamicSQLStatement = "INSERT INTO " + m_dynamicTableName + " VALUES(DEFAULT, ";
 			}
@@ -223,7 +229,7 @@ private:
 					"'" + sanitize(boost::lexical_cast<std::string>(message.getSTREAMID()))+ "')";
 					
 			//cout << m_dynamicSQLStatement << endl;
-			if(m_dynamicIteration++ == m_iterations || m_iterations <= 0)
+			if(m_dynamicIteration++ == m_dynamicMaxIterations || m_dynamicMaxIterations <= 0)
 			{
 				m_dynamicIteration = 1;
 
@@ -318,35 +324,13 @@ private:
 
 		//--------test creating new entry if anything is different-----------------
 		
-
-		/*
 		//Check for special case MMSI --------------------------------------
-		// test case 0
-		test_unique_ID = genUniqueID("0", imo, callsign, vesselname);
-		test_query = "SELECT * FROM " + m_staticTableName + " WHERE UNIQUE_ID = '" + test_unique_ID + "'";
-		test_result = w.exec(test_query);
-		if (test_result.size() != 0)
-		{
-			aisDebug("Turns out, this is not unique! Need to do matching");
-			//TODO: match data
-			return true;
-		}
-
-		// test case -1
-		test_unique_ID = genUniqueID("-1", imo, callsign, vesselname);
-		test_query = "SELECT * FROM " + m_staticTableName + " WHERE UNIQUE_ID = '" + test_unique_ID + "'";
-		test_result = w.exec(test_query);
-		if (test_result.size() != 0)
-		{
-			aisDebug("Turns out, this is not unique! Need to do matching");
-			//TODO: match data
-			return true;
-		}
+		//don't check for MMSI special cases, since we are going to use MMSI as the base to match other changes
 
 		//Check for special case IMO ---------------------------------------
 		// test case 0
 		test_unique_ID = genUniqueID(mmsi, "0", callsign, vesselname);
-		test_query = "SELECT * FROM " + m_staticTableName + " WHERE UNIQUE_ID = '" + test_unique_ID + "'";
+		test_query = "SELECT * FROM " + m_staticTableName + " WHERE MMSI = '" + test_unique_ID + "'";
 		test_result = w.exec(test_query);
 		if (test_result.size() != 0)
 		{
@@ -357,7 +341,7 @@ private:
 
 		// test case -1
 		test_unique_ID = genUniqueID(mmsi, "-1", callsign, vesselname);
-		test_query = "SELECT * FROM " + m_staticTableName + " WHERE UNIQUE_ID = '" + test_unique_ID + "'";
+		test_query = "SELECT * FROM " + m_staticTableName + " WHERE MMSI = '" + test_unique_ID + "'";
 		test_result = w.exec(test_query);
 		if (test_result.size() != 0)
 		{
@@ -369,7 +353,7 @@ private:
 		//Check for special case CALLSIGN ----------------------------------
 		// test case ""
 		test_unique_ID = genUniqueID(mmsi, imo, "", vesselname);
-		test_query = "SELECT * FROM " + m_staticTableName + " WHERE UNIQUE_ID = '" + test_unique_ID + "'";
+		test_query = "SELECT * FROM " + m_staticTableName + " WHERE MMSI = '" + test_unique_ID + "'";
 		test_result = w.exec(test_query);
 		if (test_result.size() != 0)
 		{
@@ -381,7 +365,7 @@ private:
 		//Check for special case VESSEL NAMES ------------------------------
 		// test case "" (blank name)
 		test_unique_ID = genUniqueID(mmsi, imo, callsign, "");
-		test_query = "SELECT * FROM " + m_staticTableName + " WHERE UNIQUE_ID = '" + test_unique_ID + "'";
+		test_query = "SELECT * FROM " + m_staticTableName + " WHERE MMSI = '" + test_unique_ID + "'";
 		test_result = w.exec(test_query);
 		if (test_result.size() != 0)
 		{
@@ -405,7 +389,6 @@ private:
 
 		//TODO: Update other fields if updated anything above (messagetype, vesseltype, ant positions, length, width, draught, eta, epfd, messagesourceid)
 
-		*/
 
 		//No special case change (truely new static entry)
 		return false;
@@ -419,7 +402,7 @@ private:
 		//aisDebug("Unique ID does not exist, pushing new static vessel row");
 
 		//Check iteration number
-		if(m_staticIteration == 1 || m_iterations <= 0)
+		if(m_staticIteration == 1 || m_staticMaxIterations <= 0)
 		{
 			m_staticSQLStatement = "INSERT INTO " + m_staticTableName + " VALUES(DEFAULT, ";
 		}
@@ -453,7 +436,7 @@ private:
 				"'" + sanitize(boost::lexical_cast<std::string>(message.getSTREAMID())) + "')";
 
 		//cout <<m_staticSQLStatement << endl;
-		if(m_staticIteration++ == m_iterations || m_iterations <= 0)
+		if(m_staticIteration++ == m_staticMaxIterations || m_staticMaxIterations <= 0)
 		{
 			m_staticIteration = 1;	//Reset iteration number
 
@@ -476,23 +459,15 @@ private:
 		pqxx::tuple row = r[0];		//extract a single row of the result
 
 		//Do the check for differences
-
-		/*	CAN'T CHECK FOR NAME, CALLSIGN, IMO, OR MMSI CHANGES BECAUSE THIS WILL CREATE A DIFFERENT UNIQUE ID THAN THE EXISTING ONE
-		string old_vessel_name = row["vessel_name"].c_str();
-		if (old_vessel_name != message.getVESSELNAME())
-		{
-		aisDebug("Vessel name has changed: \"" << message.getVESSELNAME() << "\" --> \"" << row["vessel_name"] << "\"");
-		//Do change update and push to change table
-		}
-		*/
+		//	CAN'T CHECK FOR NAME, CALLSIGN, IMO, OR MMSI CHANGES BECAUSE THIS WILL CREATE A DIFFERENT UNIQUE ID THAN THE EXISTING ONE
 
 		if (atoi(row["vessel_type"].c_str()) != message.getVESSELTYPEINT())
 		{
 			aisDebug("Vessel type has changed: \"" << message.getVESSELTYPEINT() << "\" --> \"" << row["vessel_type"] << "\"");
 			//Do change update and push to change table
 			addNewChangeEntry(row, message, "Vessel_Type", 
-				boost::lexical_cast<std::string>(message.getVESSELTYPEINT()),unique_ID);
-			UpdateStaticEntry(row, message, "Vessel_Type",unique_ID);
+				boost::lexical_cast<std::string>(message.getVESSELTYPEINT()), unique_ID);
+			UpdateStaticEntry(row, message, "Vessel_Type", unique_ID);
 
 		}
 		if (atoi(row["antenna_position_bow"].c_str()) != message.getBOW())
@@ -500,56 +475,56 @@ private:
 			aisDebug("Vessel antenna position to bow changed");
 			//Do change update and push to change table
 			addNewChangeEntry(row, message, "Antenna_Position_Bow", 
-				boost::lexical_cast<std::string>(message.getBOW()),unique_ID);
-			UpdateStaticEntry(row, message, "Antenna_Position_Bow",unique_ID);
+				boost::lexical_cast<std::string>(message.getBOW()), unique_ID);
+			UpdateStaticEntry(row, message, "Antenna_Position_Bow", unique_ID);
 		}
 		if (atoi(row["antenna_position_stern"].c_str()) != message.getSTERN())
 		{
 			aisDebug("Vessel antenna position to stern changed");
 			//Do change update and push to change table
 			addNewChangeEntry(row, message, "Antenna_Position_Stern", 
-				boost::lexical_cast<std::string>(message.getSTERN()),unique_ID);
-			UpdateStaticEntry(row, message, "Antenna_Position_Stern",unique_ID);
+				boost::lexical_cast<std::string>(message.getSTERN()), unique_ID);
+			UpdateStaticEntry(row, message, "Antenna_Position_Stern", unique_ID);
 		}
 		if (atoi(row["antenna_position_port"].c_str()) != message.getPORT())
 		{
 			aisDebug("Vessel antenna position to port changed");
 			//Do change update and push to change table
 			addNewChangeEntry(row, message, "Antenna_Position_Port", 
-				boost::lexical_cast<std::string>(message.getPORT()),unique_ID);
-			UpdateStaticEntry(row, message, "antenna_position_port",unique_ID);
+				boost::lexical_cast<std::string>(message.getPORT()), unique_ID);
+			UpdateStaticEntry(row, message, "antenna_position_port", unique_ID);
 		}
 		if (atoi(row["antenna_position_starboard"].c_str()) != message.getSTARBOARD())
 		{
 			aisDebug("Vessel antenna position to starboard changed");
 			//Do change update and push to change table
 			addNewChangeEntry(row, message, "Antenna_Position_Starboard", 
-				boost::lexical_cast<std::string>(message.getSTARBOARD()),unique_ID);
-			UpdateStaticEntry(row, message, "antenna_position_starboard",unique_ID);
+				boost::lexical_cast<std::string>(message.getSTARBOARD()), unique_ID);
+			UpdateStaticEntry(row, message, "antenna_position_starboard", unique_ID);
 		}
 		if (atoi(row["length"].c_str()) != message.getSHIPLENGTH())
 		{
 			aisDebug("Vessel length changed");
 			//Do change update and push to change table
 			addNewChangeEntry(row, message, "Length", 
-				boost::lexical_cast<std::string>(message.getSHIPLENGTH()),unique_ID);
-			UpdateStaticEntry(row, message, "length",unique_ID);
+				boost::lexical_cast<std::string>(message.getSHIPLENGTH()), unique_ID);
+			UpdateStaticEntry(row, message, "length", unique_ID);
 		}
 		if (atoi(row["width"].c_str()) != message.getSHIPWIDTH())
 		{
 			aisDebug("Vessel width changed");
 			//Do change update and push to change table
 			addNewChangeEntry(row, message, "Width", 
-				boost::lexical_cast<std::string>(message.getSHIPWIDTH()),unique_ID);
-			UpdateStaticEntry(row, message, "width",unique_ID);
+				boost::lexical_cast<std::string>(message.getSHIPWIDTH()), unique_ID);
+			UpdateStaticEntry(row, message, "width", unique_ID);
 		}
 		if (atoi(row["draught"].c_str()) != message.getDRAUGHT())
 		{
 			aisDebug("Vessel draught changed");
 			//Do change update and push to change table
 			addNewChangeEntry(row, message, "Draught", 
-				boost::lexical_cast<std::string>(message.getDRAUGHT()),unique_ID);
-			UpdateStaticEntry(row, message, "draught",unique_ID);
+				boost::lexical_cast<std::string>(message.getDRAUGHT()), unique_ID);
+			UpdateStaticEntry(row, message, "draught", unique_ID);
 		}
 		string old_destination = row["destination"].c_str();
 		if (old_destination != message.getDESTINATION())
@@ -558,7 +533,7 @@ private:
 			//Do change update and push to change table
 			addNewChangeEntry(row, message, "Destination", 
 				boost::lexical_cast<std::string>(message.getDESTINATION()),unique_ID);
-			UpdateStaticEntry(row, message, "destination",unique_ID);
+			UpdateStaticEntry(row, message, "destination", unique_ID);
 		}
 		if (atoi(row["eta"].c_str()) != message.getETA())
 		{
@@ -566,7 +541,7 @@ private:
 			//Do change update and push to change table
 			addNewChangeEntry(row, message, "Eta", 
 				boost::lexical_cast<std::string>(message.getETA()),unique_ID);
-			UpdateStaticEntry(row, message, "eta",unique_ID);
+			UpdateStaticEntry(row, message, "eta", unique_ID);
 		}
 		/*
 		if (atoi(row["epfd"].c_str()) != message.getEPFD())
@@ -576,15 +551,14 @@ private:
 		}
 		*/
 	}
+
 	// Add new entries to AIS_Change table for existing unique ID when the static messages change
-	bool addNewChangeEntry(pqxx::tuple row, const AisMessage& message, string tag_name, string new_value,
-		string unique_ID)
-		
+	bool addNewChangeEntry(pqxx::tuple row, const AisMessage& message, string tag_name, string new_value, string unique_ID)
 	{
 		string version = "'TEST'";
 		string CHANGE_TABLE_NAME = "ais_change";
 		
-		if(m_changeIteration == 1 || m_iterations <= 0)
+		if(m_changeIteration == 1 || m_changeMaxIterations <= 0)
 		{
 			m_changeSQLStatement = "INSERT INTO " + CHANGE_TABLE_NAME + " VALUES(DEFAULT, ";
 		}
@@ -603,17 +577,19 @@ private:
 		{
 			m_changeSQLStatement += "'" + boost::lexical_cast<std::string>(row[tag_name].c_str()) + "'," +
 			"'" + sanitize(new_value) + "')";
-		} else if  (tag_name == "Eta")
+		} 
+		else if  (tag_name == "Eta")
 		{
 			m_changeSQLStatement += "to_timestamp(" + boost::lexical_cast<std::string>(row[tag_name].c_str()) + ")," +
 			"to_timestamp(" + new_value + "))";
-		} else
+		} 
+		else
 		{
 			m_changeSQLStatement += boost::lexical_cast<std::string>(row[tag_name].c_str()) + "," +
 			sanitize(new_value) + ")";
 		}
 		//cout << "changeIteration " << m_changeSQLStatement << endl;
-		if(m_changeIteration++ == m_iterations || m_iterations <= 0)
+		if(m_changeIteration++ == m_changeMaxIterations || m_changeMaxIterations <= 0)
 		{
 			m_changeIteration = 1;	//Reset iteration number
 
@@ -625,24 +601,26 @@ private:
 		}
 		return true;
 	}
+
 	bool UpdateStaticEntry(pqxx::tuple row, const AisMessage& message, string tag_name, string unique_ID)
 	{
 		string version = "'TEST'";
 		
 		m_changeSQLStatement = "UPDATE " + m_staticTableName + " SET ";
 		
-
 		//Build the update SQL statement
 		m_changeSQLStatement += tag_name + " = ";
 		if (tag_name == "Destination")
 		{
 			m_changeSQLStatement += "'" + sanitize(boost::lexical_cast<std::string>(row[tag_name].c_str())) + "'";
 			
-		} else if  (tag_name == "Eta")
+		} 
+		else if  (tag_name == "Eta")
 		{
 			m_changeSQLStatement += "to_timestamp(" + boost::lexical_cast<std::string>(row[tag_name].c_str()) + ")";
 
-		} else
+		} 
+		else
 		{
 			m_changeSQLStatement +=  boost::lexical_cast<std::string>(row[tag_name].c_str());
 		}
@@ -657,6 +635,7 @@ private:
 			
 		return true;
 	}
+
 	/**
 	Unique vessel ID generator
 	*/
@@ -702,7 +681,8 @@ private:
 		{
 			fillLen = MAX_LEN - outputString.length();
 			outputString.append(fillLen, DEFAULT_FILL);
-		} else if (outputString.length() > MAX_LEN)
+		} 
+		else if (outputString.length() > MAX_LEN)
 		{
 			cerr << "Error in fillString length check: " << outputString.length() << " > " << MAX_LEN  << " string = " << outputString << endl;
 			exit(1);
@@ -796,9 +776,9 @@ private:
 		cout << "Database Name: " << m_databaseName<< endl;
 		cout << "Static Table Name: " << m_staticTableName<< endl;
 		cout << "Dynamic Table Name: " << m_dynamicTableName<< endl;
-		cout << "Iterations: " << m_iterations<< endl;
 		cout << "Static Iteration: " << m_staticIteration<< endl;
 		cout << "Dynamic Iteration: " << m_dynamicIteration<< endl;
+		cout << "Change Iteration: " << m_changeIteration<< endl;
 		cout << "Initialized: " << m_initialized<< endl;
 
 		if(m_con)
@@ -830,7 +810,11 @@ private:
 	string m_databaseName;
 	string m_staticTableName;
 	string m_dynamicTableName;
-	int m_iterations;
+
+	int m_staticMaxIterations;
+	int m_dynamicMaxIterations;
+	int m_changeMaxIterations;
+
 	int m_staticIteration;
 	int m_dynamicIteration;
 	int m_changeIteration;
