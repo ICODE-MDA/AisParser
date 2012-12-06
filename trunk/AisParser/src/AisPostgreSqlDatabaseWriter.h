@@ -314,7 +314,7 @@ private:
 		//Build the static SQL statement
 		m_staticSQLStatement +=
 				version + "," +
-				"'" + unique_ID + "'," +
+				"'" + sanitize(unique_ID) + "'," +
 				"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
 				"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
 				boost::lexical_cast<std::string>(message.getMESSAGETYPE()) + ", " +
@@ -373,52 +373,75 @@ private:
 		{
 			aisDebug("Vessel type has changed: \"" << message.getVESSELTYPEINT() << "\" --> \"" << row["vessel_type"] << "\"");
 			//Do change update and push to change table
+			addNewChangeEntry(row, message, "Vessel_Type", 
+				boost::lexical_cast<std::string>(message.getVESSELTYPEINT()),unique_ID);
+			UpdateStaticEntry(row, message, "Vessel_Type",
+				boost::lexical_cast<std::string>(message.getVESSELTYPEINT()),unique_ID);
+
 		}
 		if (atoi(row["antenna_position_bow"].c_str()) != message.getBOW())
 		{
 			aisDebug("Vessel antenna position to bow changed");
 			//Do change update and push to change table
+			addNewChangeEntry(row, message, "Antenna_Position_Bow", 
+				boost::lexical_cast<std::string>(message.getBOW()),unique_ID);
 		}
 		if (atoi(row["antenna_position_stern"].c_str()) != message.getSTERN())
 		{
 			aisDebug("Vessel antenna position to stern changed");
 			//Do change update and push to change table
+			addNewChangeEntry(row, message, "Antenna_Position_Stern", 
+				boost::lexical_cast<std::string>(message.getSTERN()),unique_ID);
 		}
 		if (atoi(row["antenna_position_port"].c_str()) != message.getPORT())
 		{
 			aisDebug("Vessel antenna position to port changed");
 			//Do change update and push to change table
+			addNewChangeEntry(row, message, "Antenna_Position_Port", 
+				boost::lexical_cast<std::string>(message.getPORT()),unique_ID);
 		}
 		if (atoi(row["antenna_position_starboard"].c_str()) != message.getSTARBOARD())
 		{
 			aisDebug("Vessel antenna position to starboard changed");
 			//Do change update and push to change table
+			addNewChangeEntry(row, message, "Antenna_Position_Starboard", 
+				boost::lexical_cast<std::string>(message.getSTARBOARD()),unique_ID);
 		}
 		if (atoi(row["length"].c_str()) != message.getSHIPLENGTH())
 		{
 			aisDebug("Vessel length changed");
 			//Do change update and push to change table
+			addNewChangeEntry(row, message, "Length", 
+				boost::lexical_cast<std::string>(message.getSHIPLENGTH()),unique_ID);
 		}
 		if (atoi(row["width"].c_str()) != message.getSHIPWIDTH())
 		{
 			aisDebug("Vessel width changed");
 			//Do change update and push to change table
+			addNewChangeEntry(row, message, "Width", 
+				boost::lexical_cast<std::string>(message.getSHIPWIDTH()),unique_ID);
 		}
 		if (atoi(row["draught"].c_str()) != message.getDRAUGHT())
 		{
 			aisDebug("Vessel draught changed");
 			//Do change update and push to change table
+			addNewChangeEntry(row, message, "Draught", 
+				boost::lexical_cast<std::string>(message.getDRAUGHT()),unique_ID);
 		}
 		string old_destination = row["destination"].c_str();
 		if (old_destination != message.getDESTINATION())
 		{
 			aisDebug("Vessel destination changed");
 			//Do change update and push to change table
+			addNewChangeEntry(row, message, "Destination", 
+				boost::lexical_cast<std::string>(message.getDESTINATION()),unique_ID);
 		}
 		if (atoi(row["eta"].c_str()) != message.getETA())
 		{
 			aisDebug("Vessel ETA has changed: \"" << message.getETA() << "\" --> \"" << row["eta"] << "\"");
 			//Do change update and push to change table
+			addNewChangeEntry(row, message, "Eta", 
+				boost::lexical_cast<std::string>(message.getETA()),unique_ID);
 		}
 		/*
 		if (atoi(row["epfd"].c_str()) != message.getEPFD())
@@ -428,7 +451,85 @@ private:
 		}
 		*/
 	}
+	// Add new entries to AIS_Change table for existing unique ID when the static messages change
+	bool addNewChangeEntry(pqxx::tuple row, const AisMessage& message, string tag_name, string new_value,
+		string unique_ID)
+		
+	{
+		string version = "'TEST'";
+		string CHANGE_TABLE_NAME = "ais_change";
+		
+		if(m_changeIteration == 1 || m_iterations <= 0)
+		{
+			m_changeSQLStatement = "INSERT INTO " + CHANGE_TABLE_NAME + " VALUES(DEFAULT, ";
+		}
+		else
+		{
+			m_staticSQLStatement+= ", (DEFAULT, ";
+		}
 
+		//Build the change SQL statement
+		m_changeSQLStatement += boost::lexical_cast<std::string>(row["ais_static_id"].c_str()) + "," +
+				version + "," +
+				"'" + sanitize(unique_ID) + "'," +
+				"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
+				"'" + tag_name + "'," ;
+		if (tag_name == "Destination")
+		{
+			m_changeSQLStatement += "'" + boost::lexical_cast<std::string>(row[tag_name].c_str()) + "'," +
+			"'" + sanitize(new_value) + "')";
+		} else if  (tag_name == "Eta")
+		{
+			m_changeSQLStatement += "to_timestamp(" + boost::lexical_cast<std::string>(row[tag_name].c_str()) + ")," +
+			"to_timestamp(" + new_value + "))";
+		} else
+		{
+			m_changeSQLStatement += boost::lexical_cast<std::string>(row[tag_name].c_str()) + "," +
+			sanitize(new_value) + ")";
+		}
+		//cout << "changeIteration " << m_changeSQLStatement << endl;
+		if(m_changeIteration++ == m_iterations || m_iterations <= 0)
+		{
+			m_changeIteration = 1;	//Reset iteration number
+
+			//aisDebug("executing multirow insert start");
+			StatementExecutor statementExecutor(m_changeSQLStatement);
+			m_con->perform(statementExecutor);	//execute the statement
+			m_changeSQLStatement = string("");	//reset the statement
+			//aisDebug("executing multirow insert end");
+		}
+		return true;
+	}
+	bool UpdateStaticEntry(pqxx::tuple row, const AisMessage& message, string tag_name, string new_value,
+		string unique_ID)
+	{
+		string version = "'TEST'";
+		
+		m_changeSQLStatement = "UPDATE " + m_staticTableName + " SET ";
+		
+
+		//Build the update SQL statement
+		m_changeSQLStatement += tag_name + " = ";
+		if (tag_name == "Destination")
+		{
+			m_changeSQLStatement += "'" + sanitize(new_value) + "'";
+			
+		} else if  (tag_name == "Eta")
+		{
+			m_changeSQLStatement += "to_timestamp(" + new_value + ")";
+
+		} else
+		{
+			m_changeSQLStatement +=  new_value;
+		}
+		m_changeSQLStatement += " WHERE AIS_Static_ID = "  + boost::lexical_cast<std::string>(row["ais_static_id"].c_str());
+		cout << m_changeSQLStatement << endl;
+		StatementExecutor statementExecutor(m_changeSQLStatement);
+		m_con->perform(statementExecutor);	//execute the statement
+		m_changeSQLStatement = string("");	//reset the statement
+			
+		return true;
+	}
 	/**
 	Unique vessel ID generator
 	*/
@@ -605,10 +706,12 @@ private:
 	int m_iterations;
 	int m_staticIteration;
 	int m_dynamicIteration;
+	int m_changeIteration;
 	bool m_initialized;
 	
 	string m_staticSQLStatement;
 	string m_dynamicSQLStatement;
+	string m_changeSQLStatement;
 	std::shared_ptr<pqxx::connection>  m_con;
 };
 
