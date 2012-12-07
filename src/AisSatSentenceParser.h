@@ -34,7 +34,9 @@ public:
 			aisDebug("Invalid Message. Message longer than 1024 characters.");
 			return false;
 		}
-		if(m_parsedSentence.size() == 9 || m_parsedSentence.size() == 10 )
+
+		//8 parsed elements for messages with only single timestamp at the end of message
+		if(m_parsedSentence.size() == 8 || m_parsedSentence.size() == 9 || m_parsedSentence.size() == 10 )
 		{
 			try
 			{
