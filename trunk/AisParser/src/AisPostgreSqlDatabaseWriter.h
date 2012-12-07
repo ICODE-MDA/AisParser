@@ -333,8 +333,8 @@ private:
 			string new_callsign = row["callsign"].c_str();
 			if (new_imo == "-1" && new_vesselname == "" && new_callsign == "")
 			{
-				cout << "OLD UNIQUE ID: " << row["unique_id"] << endl;
-				cout << "NEW UNIQUE ID: " << unique_ID << endl;
+				//cout << "OLD UNIQUE ID: " << row["unique_id"] << endl;
+				//cout << "NEW UNIQUE ID: " << unique_ID << endl;
 				//cout << "NEED TO UPDATE EXISTING RECORD" << endl << endl;
 
 				//Update unique_id
@@ -350,7 +350,7 @@ private:
 
 				w.exec(update_record);
 				w.commit();
-				aisDebug("Record " << row["ais_static_id"].c_str() << " updated.");
+				//aisDebug("Record " << row["ais_static_id"].c_str() << " updated.");
 				changed = true;
 			}
 			else
