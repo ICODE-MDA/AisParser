@@ -312,86 +312,55 @@ private:
 	 */
 	bool checkSpecialCasesChanged(const AisMessage& message, string version, string mmsi, string imo, string callsign, string vesselname, string unique_ID, pqxx::result r)
 	{
-		string test_unique_ID;
+		bool changed = false;
 		string connection_string = "user=" + m_username + " password=" + m_password + " dbname=" + m_databaseName + " hostaddr=" + m_hostname;
 		string test_query;
 		string update_record;
 		pqxx::connection c(connection_string);
 		pqxx::work w(c);
 		pqxx::result test_result;
-
 		pqxx::tuple row = r[0];		//extract a single row of the result
 
-		//--------test creating new entry if anything is different-----------------
-		
-		//Check for special case MMSI --------------------------------------
-		//don't check for MMSI special cases, since we are going to use MMSI as the base to match other changes
-
-		//Check for special case IMO ---------------------------------------
-		// test case 0
-		test_unique_ID = genUniqueID(mmsi, "0", callsign, vesselname);
-		test_query = "SELECT * FROM " + m_staticTableName + " WHERE MMSI = '" + test_unique_ID + "'";
+		test_query = "SELECT * FROM " + m_staticTableName + " WHERE MMSI = '" + mmsi + "'";
 		test_result = w.exec(test_query);
 		if (test_result.size() != 0)
 		{
-			aisDebug("Turns out, this is not unique! Need to do matching");
-			//TODO: match data
-			return true;
+			row = test_result[0];
+
+			//Only update existing record if it has all blank or invalid values
+			string new_imo = row["IMO"].c_str();
+			string new_vesselname = row["vessel_name"].c_str();
+			string new_callsign = row["callsign"].c_str();
+			if (new_imo == "-1" && new_vesselname == "" && new_callsign == "")
+			{
+				cout << "OLD UNIQUE ID: " << row["unique_id"] << endl;
+				cout << "NEW UNIQUE ID: " << unique_ID << endl;
+				//cout << "NEED TO UPDATE EXISTING RECORD" << endl << endl;
+
+				//Update unique_id
+				update_record = "UPDATE " + m_staticTableName + " SET unique_id = '" + unique_ID + "' WHERE ais_static_id = " + row["ais_static_id"].c_str() + ";";
+				//Update IMO
+				update_record = "UPDATE " + m_staticTableName + " SET imo = '" + imo + "' WHERE ais_static_id = " + row["ais_static_id"].c_str() + ";";
+				//Update vessel name
+				update_record = "UPDATE " + m_staticTableName + " SET vessel_name = '" + sanitize(vesselname) + "' WHERE ais_static_id = " + row["ais_static_id"].c_str() + ";";
+				//Update callsign
+				update_record = "UPDATE " + m_staticTableName + " SET callsign = '" + sanitize(callsign) + "' WHERE ais_static_id = " + row["ais_static_id"].c_str() + ";";
+				//Update latest_timestamp
+				update_record = "UPDATE " + m_staticTableName + " SET latest_timestamp = " + "to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + ") WHERE ais_static_id = " + row["ais_static_id"].c_str() + ";";
+
+				w.exec(update_record);
+				w.commit();
+				aisDebug("Record " << row["ais_static_id"].c_str() << " updated.");
+				changed = true;
+			}
+			else
+			{
+				//no change or update needed
+			}
 		}
-
-		// test case -1
-		test_unique_ID = genUniqueID(mmsi, "-1", callsign, vesselname);
-		test_query = "SELECT * FROM " + m_staticTableName + " WHERE MMSI = '" + test_unique_ID + "'";
-		test_result = w.exec(test_query);
-		if (test_result.size() != 0)
-		{
-			aisDebug("Turns out, this is not unique! Need to do matching");
-			//TODO: match data
-			return true;
-		}
-
-		//Check for special case CALLSIGN ----------------------------------
-		// test case ""
-		test_unique_ID = genUniqueID(mmsi, imo, "", vesselname);
-		test_query = "SELECT * FROM " + m_staticTableName + " WHERE MMSI = '" + test_unique_ID + "'";
-		test_result = w.exec(test_query);
-		if (test_result.size() != 0)
-		{
-			aisDebug("Turns out, this is not unique! Need to do matching");
-			//TODO: match data
-			return true;
-		}
-
-		//Check for special case VESSEL NAMES ------------------------------
-		// test case "" (blank name)
-		test_unique_ID = genUniqueID(mmsi, imo, callsign, "");
-		test_query = "SELECT * FROM " + m_staticTableName + " WHERE MMSI = '" + test_unique_ID + "'";
-		test_result = w.exec(test_query);
-		if (test_result.size() != 0)
-		{
-			aisDebug("Turns out, this is not unique! Need to do matching");
-			//TODO: match data
-			pqxx::tuple row = test_result[0];
-			//TODO: call Lynne's update function for each field update
-			//Update vessel name
-			update_record = "UPDATE " + m_staticTableName + " SET vessel_name = '" + vesselname + "' WHERE ais_static_id = " + row["ais_static_id"].c_str() + ";";
-			//Update unique_id
-			update_record = "UPDATE " + m_staticTableName + " SET unique_id = '" + test_unique_ID + "' WHERE ais_static_id = " + row["ais_static_id"].c_str() + ";";
-			//Update latest_timestamp
-			update_record = "UPDATE " + m_staticTableName + " SET latest_timestamp = " + "to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " + " WHERE ais_static_id = " + row["ais_static_id"].c_str() + ";";
-
-			aisDebug(update_record);
-			w.exec(update_record);
-			w.commit();
-			aisDebug("Record updated.");
-			return true;
-		}
-
-		//TODO: Update other fields if updated anything above (messagetype, vesseltype, ant positions, length, width, draught, eta, epfd, messagesourceid)
-
 
 		//No special case change (truely new static entry)
-		return false;
+		return changed;
 	}
 
 	/**
