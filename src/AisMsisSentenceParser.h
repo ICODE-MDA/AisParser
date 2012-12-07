@@ -80,9 +80,9 @@ public:
 		}
 		else
 		{
-			if (boost::find_first(m_fullSentence,"HEARTBEAT"))
+			if (boost::find_first(m_fullSentence,"HEARTBEAT") || boost::find_first(m_fullSentence,"connected to MSSIS distributor"))
 			{
-				aisDebug("Heartbeat message\n" + m_fullSentence);
+				//aisDebug("Heartbeat message\n" + m_fullSentence);
 			}
 			else
 			{
