@@ -67,7 +67,14 @@ public:
 		}
 		else
 		{
-			aisDebug("Message does not have 9||10 columns\n" + m_fullSentence);
+			if (boost::find_first(m_fullSentence,"HEARTBEAT") || boost::find_first(m_fullSentence,"connected to MSSIS distributor"))
+			{
+				//aisDebug("Heartbeat message\n" + m_fullSentence);
+			}
+			else
+			{
+				aisDebug("Message does not have 9||10 columns\n" + m_fullSentence);
+			}
 			return false;
 		}
 	}
