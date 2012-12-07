@@ -129,17 +129,33 @@ public:
 		int message_type = message.getMESSAGETYPE();
 		if (message_type == 5 || message_type == 24)	//Static message
 		{
-			//aisDebug("*** writing to static table ***");
 			return writeStaticEntry(message);
 		}
 		else if (message_type == 1 || message_type == 2 || message_type == 3 || message_type == 4 || message_type == 18 || message_type == 19) //Dynamic message with location
 		{
-			//aisDebug("*** writing to dynamic table ***");
+			//Call write dynamic entry first, then call write target entry.  
+			//This order is important for PostgreSQL to create the dependent static entry before write target is called.
 			return (writeDynamicEntry(message) && writeTargetEntry(message));
+		}
+		else if (message_type == 9)		//Standard SAR Aircraft Position Report message
+		{
+			return false; //ignore this type of message for now.
+		}
+		else if (message_type == 12)	//Addressed Safety-Related Message
+		{
+			return false; //ignore this type of message for now.
+		}
+		else if (message_type == 14)	//Safety-Related Broadcast Message
+		{
+			return false; //ignore this type of message for now.
+		}
+		else if (message_type == -1)
+		{
+			return false; //ignore this type of message for now.
 		}
 		else
 		{
-			aisDebug("Message type not handled");
+			aisDebug("Message type " << message_type << " not handled");
 			return false;
 		}
 	}
@@ -324,29 +340,76 @@ private:
 			row = test_result[0];
 
 			//Only update existing record if it has all blank or invalid values
-			string new_imo = row["IMO"].c_str();
-			string new_vesselname = row["vessel_name"].c_str();
-			string new_callsign = row["callsign"].c_str();
-			if (new_imo == "-1" && new_vesselname == "" && new_callsign == "")
+			string old_imo = row["IMO"].c_str();
+			string old_vesselname = row["vessel_name"].c_str();
+			string old_callsign = row["callsign"].c_str();
+			string old_ais_static_id = row["ais_static_id"].c_str();
+
+			//cout << "OLD: " << old_imo << "\t" << old_vesselname << "\t" << old_callsign << "\tID:" << old_ais_static_id << endl;
+			//cout << "NEW: " << imo << "\t" << vesselname << "\t" << callsign << endl;
+
+			if (old_imo == "-1" && old_callsign == "" && old_vesselname == "")
 			{
-				//cout << "OLD UNIQUE ID: " << row["unique_id"] << endl;
-				//cout << "NEW UNIQUE ID: " << unique_ID << endl;
-				//cout << "NEED TO UPDATE EXISTING RECORD" << endl << endl;
-
 				//Update unique_id
-				update_record = "UPDATE " + m_staticTableName + " SET unique_id = '" + unique_ID + "' WHERE ais_static_id = " + row["ais_static_id"].c_str() + ";";
-				//Update IMO
-				update_record = "UPDATE " + m_staticTableName + " SET imo = '" + imo + "' WHERE ais_static_id = " + row["ais_static_id"].c_str() + ";";
-				//Update vessel name
-				update_record = "UPDATE " + m_staticTableName + " SET vessel_name = '" + sanitize(vesselname) + "' WHERE ais_static_id = " + row["ais_static_id"].c_str() + ";";
-				//Update callsign
-				update_record = "UPDATE " + m_staticTableName + " SET callsign = '" + sanitize(callsign) + "' WHERE ais_static_id = " + row["ais_static_id"].c_str() + ";";
-				//Update latest_timestamp
-				update_record = "UPDATE " + m_staticTableName + " SET latest_timestamp = " + "to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + ") WHERE ais_static_id = " + row["ais_static_id"].c_str() + ";";
-
+				update_record = "UPDATE " + m_staticTableName + " SET unique_id = '" + unique_ID + "' WHERE ais_static_id = " + old_ais_static_id + ";";
 				w.exec(update_record);
+				//Update IMO
+				update_record = "UPDATE " + m_staticTableName + " SET imo = '" + imo + "' WHERE ais_static_id = " + old_ais_static_id + ";";
+				w.exec(update_record);
+				//Update vessel name
+				update_record = "UPDATE " + m_staticTableName + " SET vessel_name = '" + sanitize(vesselname) + "' WHERE ais_static_id = " + old_ais_static_id + ";";
+				w.exec(update_record);
+				//Update callsign
+				update_record = "UPDATE " + m_staticTableName + " SET callsign = '" + sanitize(callsign) + "' WHERE ais_static_id = " + old_ais_static_id + ";";
+				w.exec(update_record);
+				//Update latest_timestamp
+				update_record = "UPDATE " + m_staticTableName + " SET latest_timestamp = " + "to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + ") WHERE ais_static_id = " + old_ais_static_id + ";";
+				w.exec(update_record);
+
 				w.commit();
+
 				//aisDebug("Record " << row["ais_static_id"].c_str() << " updated.");
+				changed = true;
+			}
+			//Case where MMSI and vesselname exists, but has blank IMO and callsign
+			else if ( (old_imo == "-1" && old_callsign == "" && old_vesselname == vesselname) &&
+					  (old_imo == "0" && old_callsign == "" && old_vesselname == vesselname) )
+			{
+				aisDebug("CALLED! for updating imo and CS");
+				//Update unique_id
+				update_record = "UPDATE " + m_staticTableName + " SET unique_id = '" + unique_ID + "' WHERE ais_static_id = " + old_ais_static_id + ";";
+				w.exec(update_record);
+				//Update IMO
+				update_record = "UPDATE " + m_staticTableName + " SET imo = '" + imo + "' WHERE ais_static_id = " + old_ais_static_id + ";";
+				w.exec(update_record);
+				//Update callsign
+				update_record = "UPDATE " + m_staticTableName + " SET callsign = '" + sanitize(callsign) + "' WHERE ais_static_id = " + old_ais_static_id + ";";
+				w.exec(update_record);
+				//Update latest_timestamp
+				update_record = "UPDATE " + m_staticTableName + " SET latest_timestamp = " + "to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + ") WHERE ais_static_id = " + old_ais_static_id + ";";
+				w.exec(update_record);
+				
+				w.commit();
+
+				changed = true;
+			}
+			//Case where IMO is -1 or 0 but the other 3 unique fields matches
+			else if ( (old_imo == "-1" && old_callsign == callsign && old_vesselname == vesselname) &&
+					  (old_imo == "0" && old_callsign == callsign && old_vesselname == vesselname) )
+			{
+				aisDebug("CALLED! for updating IMO only");
+				//Update unique_id
+				update_record = "UPDATE " + m_staticTableName + " SET unique_id = '" + unique_ID + "' WHERE ais_static_id = " + old_ais_static_id + ";";
+				w.exec(update_record);
+				//Update IMO
+				update_record = "UPDATE " + m_staticTableName + " SET imo = '" + imo + "' WHERE ais_static_id = " + old_ais_static_id + ";";
+				w.exec(update_record);
+				//Update latest_timestamp
+				update_record = "UPDATE " + m_staticTableName + " SET latest_timestamp = " + "to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + ") WHERE ais_static_id = " + old_ais_static_id + ";";
+				w.exec(update_record);
+				
+				w.commit();
+
 				changed = true;
 			}
 			else
@@ -660,6 +723,7 @@ private:
 		string TARGET_NAME = "Target_Location";
 		try
 		{	
+			//Use the same max iterations number as the dynamic table
 			if(m_targetIteration == 1 || m_dynamicMaxIterations <= 0)
 			{
 				m_targetSQLStatement = "INSERT INTO " + TARGET_NAME + " VALUES(DEFAULT,";
@@ -676,10 +740,9 @@ private:
 				"ST_SetSRID(ST_Point(" +
 				boost::lexical_cast<std::string>(message.getLON())+ ", " +
 				boost::lexical_cast<std::string>(message.getLAT())+ "),4326)::geography)";
-				cout << m_targetSQLStatement << endl;
 			//Need to add version, gen_unique_id.  Need to add update capability to existing table	
 
-			cout << m_targetSQLStatement << endl;
+			//cout << m_targetSQLStatement << endl;
 			if(m_targetIteration++ ==m_dynamicMaxIterations || m_dynamicMaxIterations <= 0)
 			{
 				m_targetIteration = 1;
@@ -697,6 +760,7 @@ private:
 		{
 			cerr << "Error on Iteration: " << m_targetIteration << endl;
 			cerr << "PostgreSQL Error : " << e.what() << endl;
+
 			return false;
 		}
 	}
