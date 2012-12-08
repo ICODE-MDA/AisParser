@@ -19,6 +19,8 @@ using namespace pqxx;
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
 
+#define STATIC_MAX_ITER 10
+#define CHANGE_MAX_ITER 10
 
 /**
 Class for writing AIS messages to an PostgreSql database.
@@ -34,14 +36,19 @@ public:
 		m_databaseName(databaseName),
 		m_staticTableName(staticTableName),
 		m_dynamicTableName(dynamicTableName),
-		m_staticMaxIterations(1),
+		m_targetTableName("Target_Location"),
+		m_changeTableName("ais_change"),
+		m_staticMaxIterations(STATIC_MAX_ITER),		//add static messages quicker than dynamic so dynamic has a 'real' static message to link to instead of dummy
 		m_dynamicMaxIterations(iterations),
-		m_changeMaxIterations(iterations),
-		m_staticIteration(0),
-		m_dynamicIteration(0),
-		m_changeIteration(0),
+		m_changeMaxIterations(CHANGE_MAX_ITER),		//changes don't happen as often as dynamic, so can update more often
+		m_staticIteration(1),
+		m_dynamicIteration(1),
+		m_changeIteration(1),
+		m_targetIteration(1),
 		m_staticSQLStatement(""),
-		m_dynamicSQLStatement("")
+		m_dynamicSQLStatement(""),
+		m_changeSQLStatement(""),
+		m_targetSQLStatement("")
 	{
 		m_initialized = init();
 	}
@@ -51,6 +58,7 @@ public:
 		aisDebug("AisPostgreSqlDatabaseWriter Destructor");
 		if(m_initialized)
 		{
+			//Finish executing static messages, if any left
 			try
 			{
 				aisDebug("trying to execute update any remaining static entries");
@@ -72,6 +80,7 @@ public:
 				cerr << "Error : " << e.what() << endl;
 			}
 
+			//Finish executing dynamic messages, if any left
 			try
 			{
 				aisDebug("trying to execute update any remaining dynamic entries");
@@ -93,6 +102,49 @@ public:
 				cerr << "Error : " << e.what() << endl;
 			}
 
+			//Finish executing target location messages, if any left
+			try
+			{
+				aisDebug("trying to execute update any remaining dynamic entries");
+
+				if(m_targetSQLStatement != "")
+				{
+					//execute statement to add any remainig
+					//aisDebug("executing multirow insert start");
+					StatementExecutor statementExecutor(m_targetSQLStatement);
+					m_con->perform(statementExecutor);
+					m_targetSQLStatement = string("");
+					//aisDebug("executing multirow insert end");
+					//m_sqlPreparedStatement->executeUpdate();
+				}
+			}
+			catch(const exception &e)
+			{
+				cerr << "Error on Iteration: " << m_targetIteration << endl;
+				cerr << "Error : " << e.what() << endl;
+			}
+
+			//Finish executing changed table messages, if any left
+			try
+			{
+				aisDebug("trying to execute update any remaining dynamic entries");
+
+				if(m_changeSQLStatement != "")
+				{
+					//execute statement to add any remainign
+					//aisDebug("executing multirow insert start");
+					StatementExecutor statementExecutor(m_changeSQLStatement);
+					m_con->perform(statementExecutor);
+					m_changeSQLStatement = string("");
+					//aisDebug("executing multirow insert end");
+					//m_sqlPreparedStatement->executeUpdate();
+				}
+			}
+			catch(const exception &e)
+			{
+				cerr << "Error on Iteration: " << m_changeIteration << endl;
+				cerr << "Error : " << e.what() << endl;
+			}
 
 			disconnectFromDatabase();
 		}
@@ -179,7 +231,8 @@ private:
 			{
 				throw std::runtime_error("Could not create PostgreSql connection");
 			}
-
+			
+			/*
 			try
 			{
 				//m_con->prepare("insert_message", "INSERT INTO " + m_tableName + " VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
@@ -195,9 +248,8 @@ private:
 			{      
 				std::cerr << "Statement Creation Error : " << e.what() << std::endl;
 				return false;
-			} 
-
-
+			}
+			*/
 		}
 		catch (std::exception &e) 
 		{
@@ -240,16 +292,13 @@ private:
 					"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
 					"'" + sanitize(boost::lexical_cast<std::string>(message.getSTREAMID()))+ "')";
 					
-			//cout << m_dynamicSQLStatement << endl;
 			if(m_dynamicIteration++ == m_dynamicMaxIterations || m_dynamicMaxIterations <= 0)
 			{
 				m_dynamicIteration = 1;
 
-				//aisDebug("executing multirow insert start");
 				StatementExecutor statementExecutor(m_dynamicSQLStatement);
 				m_con->perform(statementExecutor);
 				m_dynamicSQLStatement = string("");
-				//aisDebug("executing multirow insert end");
 			}
 			return true;
 		}
@@ -269,59 +318,51 @@ private:
 	{
 		string version = "'TEST'";
 		string mmsi, imo, callsign, vesselname, unique_ID;
-		try
-		{	
-			//Generate unique ID using the 4 fields
-			mmsi = boost::lexical_cast<std::string>(message.getMMSI());
-			imo = boost::lexical_cast<std::string>(message.getIMO());;
-			callsign = boost::lexical_cast<std::string>(message.getCALLSIGN());
-			vesselname = boost::lexical_cast<std::string>(message.getVESSELNAME());	//use sanitize function to prevent escape characters in string
-			unique_ID = genUniqueID(mmsi, imo, callsign, vesselname);
 
-			//Check if current unique ID exists in the table already
-			string m_query = "SELECT ais_static_id, extract(epoch from latest_timestamp) as latest_timestamp,";
-			m_query +=	"message_type, mmsi, imo, callsign, vessel_name, vessel_type, antenna_position_bow, ";
-			m_query += "antenna_position_stern, antenna_position_port, antenna_position_starboard, length, width, draught, ";
-			m_query += "destination, extract(epoch from eta) as eta, epfd FROM " + m_staticTableName + " WHERE UNIQUE_ID = '" + sanitize(unique_ID) + "'";
-			
-			//Try connecting using non-transaction method in order to obtain query results
-			string connection_string = "user=" + m_username + " password=" + m_password + " dbname=" + m_databaseName + " hostaddr=" + m_hostname;
-			pqxx::connection c(connection_string);
-			pqxx::work w(c);
-			pqxx::result r = w.exec(m_query);
-			//cout << "RESULT IS: " << r.size() << endl;	//result size should only be 1 row if below is implemented completely
+		//Generate unique ID using the 4 fields
+		mmsi = boost::lexical_cast<std::string>(message.getMMSI());
+		imo = boost::lexical_cast<std::string>(message.getIMO());;
+		callsign = boost::lexical_cast<std::string>(message.getCALLSIGN());
+		vesselname = boost::lexical_cast<std::string>(message.getVESSELNAME());	//use sanitize function to prevent escape characters in string
+		unique_ID = genUniqueID(mmsi, imo, callsign, vesselname);
 
-			if (r.size() == 0)		// No existing unique ID, check for special cases, otherwise simply push new entry
+		//Check if current unique ID exists in the table already
+		string m_query = "SELECT ais_static_id, extract(epoch from latest_timestamp) as latest_timestamp,";
+		m_query +=	"message_type, mmsi, imo, callsign, vessel_name, vessel_type, antenna_position_bow, ";
+		m_query += "antenna_position_stern, antenna_position_port, antenna_position_starboard, length, width, draught, ";
+		m_query += "destination, extract(epoch from eta) as eta, epfd FROM " + m_staticTableName + " WHERE UNIQUE_ID = '" + sanitize(unique_ID) + "'";
+
+		//Try connecting using non-transaction method in order to obtain query results
+		string connection_string = "user=" + m_username + " password=" + m_password + " dbname=" + m_databaseName + " hostaddr=" + m_hostname;
+		pqxx::connection c(connection_string);
+		pqxx::work w(c);
+		pqxx::result r = w.exec(m_query);
+		//cout << "RESULT IS: " << r.size() << endl;	//result size should only be 1 row if below is implemented completely
+
+		if (r.size() == 0)		// No existing unique ID, check for special cases, otherwise simply push new entry
+		{
+			//Check for special cases
+			if (!checkSpecialCasesChanged(message, version, mmsi, imo, callsign, vesselname, unique_ID, r))
 			{
-				//Check for special cases
-				if (!checkSpecialCasesChanged(message, version, mmsi, imo, callsign, vesselname, unique_ID, r))
-				{
-					//Push new entry
-					return addNewStaticEntry(message, version, mmsi, imo, callsign, vesselname, unique_ID);
-				}
-			}
-			else	// Unique ID exists in table, so do some matching
-			{
-				//Check for changes in existing entry with matching unique ID and entry occurs latter in time
-				pqxx::tuple currentRow = r[0];
-				if (atoi(currentRow["latest_timestamp"].c_str()) < message.getDATETIME())
-				{
-					
-					return checkStaticChanges(message, version, mmsi, imo, callsign, vesselname, unique_ID, r);
-				}
+				//Push new entry
+				return addNewStaticEntry(message, version, mmsi, imo, callsign, vesselname, unique_ID);
 			}
 		}
-		catch(const exception &e)
+		else	// Unique ID exists in table, so do some matching
 		{
-			cerr << "Error on Iteration: " << m_staticIteration << endl;
-			cerr << "PostgreSQL Error : " << e.what() << endl;
-			return false;
+			//Check for changes in existing entry with matching unique ID and entry occurs latter in time
+			pqxx::tuple currentRow = r[0];
+			if (atoi(currentRow["latest_timestamp"].c_str()) < message.getDATETIME())
+			{
+
+				return checkStaticChanges(message, version, mmsi, imo, callsign, vesselname, unique_ID, r);
+			}
 		}
 	}
 
 	/**
-	 Check if special cases matches any existing unique IDs
-	 */
+	Check if special cases matches any existing unique IDs
+	*/
 	bool checkSpecialCasesChanged(const AisMessage& message, string version, string mmsi, string imo, string callsign, string vesselname, string unique_ID, pqxx::result r)
 	{
 		bool changed = false;
@@ -333,6 +374,8 @@ private:
 		pqxx::result test_result;
 		pqxx::tuple row = r[0];		//extract a single row of the result
 
+		try
+		{
 		test_query = "SELECT * FROM " + m_staticTableName + " WHERE MMSI = '" + mmsi + "'";
 		test_result = w.exec(test_query);
 		if (test_result.size() != 0)
@@ -351,21 +394,10 @@ private:
 			if (old_imo == "-1" && old_callsign == "" && old_vesselname == "")
 			{
 				//Update unique_id
-				update_record = "UPDATE " + m_staticTableName + " SET unique_id = '" + unique_ID + "' WHERE ais_static_id = " + old_ais_static_id + ";";
+				update_record = "UPDATE " + m_staticTableName + " SET unique_id = '" + unique_ID + "', imo = '" + imo + 
+								"', vessel_name = '" + sanitize(vesselname) + "', callsign = '" + sanitize(callsign) + "', latest_timestamp = " + 
+								"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + ") WHERE ais_static_id = " + old_ais_static_id + ";";
 				w.exec(update_record);
-				//Update IMO
-				update_record = "UPDATE " + m_staticTableName + " SET imo = '" + imo + "' WHERE ais_static_id = " + old_ais_static_id + ";";
-				w.exec(update_record);
-				//Update vessel name
-				update_record = "UPDATE " + m_staticTableName + " SET vessel_name = '" + sanitize(vesselname) + "' WHERE ais_static_id = " + old_ais_static_id + ";";
-				w.exec(update_record);
-				//Update callsign
-				update_record = "UPDATE " + m_staticTableName + " SET callsign = '" + sanitize(callsign) + "' WHERE ais_static_id = " + old_ais_static_id + ";";
-				w.exec(update_record);
-				//Update latest_timestamp
-				update_record = "UPDATE " + m_staticTableName + " SET latest_timestamp = " + "to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + ") WHERE ais_static_id = " + old_ais_static_id + ";";
-				w.exec(update_record);
-
 				w.commit();
 
 				//aisDebug("Record " << row["ais_static_id"].c_str() << " updated.");
@@ -375,20 +407,11 @@ private:
 			else if ( (old_imo == "-1" && old_callsign == "" && old_vesselname == vesselname) &&
 					  (old_imo == "0" && old_callsign == "" && old_vesselname == vesselname) )
 			{
-				aisDebug("CALLED! for updating imo and CS");
 				//Update unique_id
-				update_record = "UPDATE " + m_staticTableName + " SET unique_id = '" + unique_ID + "' WHERE ais_static_id = " + old_ais_static_id + ";";
+				update_record = "UPDATE " + m_staticTableName + " SET unique_id = '" + unique_ID + "', imo = '" + imo + 
+								"', callsign = '" + sanitize(callsign) + "', latest_timestamp = " + 
+								"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + ") WHERE ais_static_id = " + old_ais_static_id + ";";
 				w.exec(update_record);
-				//Update IMO
-				update_record = "UPDATE " + m_staticTableName + " SET imo = '" + imo + "' WHERE ais_static_id = " + old_ais_static_id + ";";
-				w.exec(update_record);
-				//Update callsign
-				update_record = "UPDATE " + m_staticTableName + " SET callsign = '" + sanitize(callsign) + "' WHERE ais_static_id = " + old_ais_static_id + ";";
-				w.exec(update_record);
-				//Update latest_timestamp
-				update_record = "UPDATE " + m_staticTableName + " SET latest_timestamp = " + "to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + ") WHERE ais_static_id = " + old_ais_static_id + ";";
-				w.exec(update_record);
-				
 				w.commit();
 
 				changed = true;
@@ -399,15 +422,10 @@ private:
 			{
 				aisDebug("CALLED! for updating IMO only");
 				//Update unique_id
-				update_record = "UPDATE " + m_staticTableName + " SET unique_id = '" + unique_ID + "' WHERE ais_static_id = " + old_ais_static_id + ";";
+				update_record = "UPDATE " + m_staticTableName + " SET unique_id = '" + unique_ID + "', imo = '" + imo + 
+								"', latest_timestamp = " + "to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + 
+								") WHERE ais_static_id = " + old_ais_static_id + ";";
 				w.exec(update_record);
-				//Update IMO
-				update_record = "UPDATE " + m_staticTableName + " SET imo = '" + imo + "' WHERE ais_static_id = " + old_ais_static_id + ";";
-				w.exec(update_record);
-				//Update latest_timestamp
-				update_record = "UPDATE " + m_staticTableName + " SET latest_timestamp = " + "to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + ") WHERE ais_static_id = " + old_ais_static_id + ";";
-				w.exec(update_record);
-				
 				w.commit();
 
 				changed = true;
@@ -420,6 +438,14 @@ private:
 
 		//No special case change (truely new static entry)
 		return changed;
+		}
+		catch(const exception &e)
+		{
+			cerr << "Error on check special cases." << endl;
+			cerr << "PostgreSQL Error : " << e.what() << endl;
+
+			return false;
+		}
 	}
 
 	/**
@@ -429,18 +455,20 @@ private:
 	{
 		//aisDebug("Unique ID does not exist, pushing new static vessel row");
 
-		//Check iteration number
-		if(m_staticIteration == 1 || m_staticMaxIterations <= 0)
+		try
 		{
-			m_staticSQLStatement = "INSERT INTO " + m_staticTableName + " VALUES(DEFAULT, ";
-		}
-		else
-		{
-			m_staticSQLStatement+= ", (DEFAULT, ";
-		}
+			//Check iteration number
+			if(m_staticIteration == 1 || m_staticMaxIterations <= 0)
+			{
+				m_staticSQLStatement = "INSERT INTO " + m_staticTableName + " VALUES(DEFAULT, ";
+			}
+			else
+			{
+				m_staticSQLStatement += ", (DEFAULT, ";
+			}
 
-		//Build the static SQL statement
-		m_staticSQLStatement +=
+			//Build the static SQL statement
+			m_staticSQLStatement +=
 				version + "," +
 				"'" + sanitize(unique_ID) + "'," +
 				"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
@@ -463,18 +491,23 @@ private:
 				boost::lexical_cast<std::string>(message.getPOSFIXTYPE()) + ", " + 
 				"'" + sanitize(boost::lexical_cast<std::string>(message.getSTREAMID())) + "')";
 
-		//cout <<m_staticSQLStatement << endl;
-		if(m_staticIteration++ == m_staticMaxIterations || m_staticMaxIterations <= 0)
-		{
-			m_staticIteration = 1;	//Reset iteration number
+			if(m_staticIteration++ == m_staticMaxIterations || m_staticMaxIterations <= 0)
+			{
+				m_staticIteration = 1;	//Reset iteration number
 
-			//aisDebug("executing multirow insert start");
-			StatementExecutor statementExecutor(m_staticSQLStatement);
-			m_con->perform(statementExecutor);	//execute the statement
-			m_staticSQLStatement = string("");	//reset the statement
-			//aisDebug("executing multirow insert end");
+				StatementExecutor statementExecutor(m_staticSQLStatement);
+				m_con->perform(statementExecutor);	//execute the statement
+				m_staticSQLStatement = string("");	//reset the statement
+			}
+			return true;
 		}
-		return true;
+		catch(const exception &e)
+		{
+			aisDebug(m_staticSQLStatement);
+			cerr << "Error on static write iteration: " << m_staticIteration << endl;
+			cerr << "PostgreSQL Error : " << e.what() << endl;
+			return false;
+		}
 	}
 
 	/**
@@ -482,7 +515,7 @@ private:
 	 */
 	bool checkStaticChanges(const AisMessage& message, string version, string mmsi, string imo, string callsign, string vesselname, string unique_ID, pqxx::result r)
 	{
-		aisDebug("Unique ID exists, need to check for changes");
+		//aisDebug("Unique ID exists, need to check for changes");
 
 		pqxx::tuple row = r[0];		//extract a single row of the result
 
@@ -584,82 +617,88 @@ private:
 	bool addNewChangeEntry(pqxx::tuple row, const AisMessage& message, string tag_name, string new_value, string unique_ID)
 	{
 		string version = "'TEST'";
-		string CHANGE_TABLE_NAME = "ais_change";
-		
-		if(m_changeIteration == 1 || m_changeMaxIterations <= 0)
+	
+		try
 		{
-			m_changeSQLStatement = "INSERT INTO " + CHANGE_TABLE_NAME + " VALUES(DEFAULT, ";
-		}
-		else
-		{
-			m_staticSQLStatement+= ", (DEFAULT, ";
-		}
+			if(m_changeIteration == 1 || m_changeMaxIterations <= 0)
+			{
+				m_changeSQLStatement = "INSERT INTO " + m_changeTableName + " VALUES(DEFAULT, ";
+			}
+			else
+			{
+				m_changeSQLStatement+= ", (DEFAULT, ";
+			}
 
-		//Build the change SQL statement
-		m_changeSQLStatement += boost::lexical_cast<std::string>(row["ais_static_id"].c_str()) + "," +
+			//Build the change SQL statement
+			m_changeSQLStatement += boost::lexical_cast<std::string>(row["ais_static_id"].c_str()) + "," +
 				version + "," +
 				"'" + sanitize(unique_ID) + "'," +
 				"to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + "), " +
 				"'" + tag_name + "'," ;
-		if (tag_name == "Destination")
-		{
-			m_changeSQLStatement += "'" + boost::lexical_cast<std::string>(row[tag_name].c_str()) + "'," +
-			"'" + sanitize(new_value) + "')";
-		} 
-		else if  (tag_name == "Eta")
-		{
-			m_changeSQLStatement += "to_timestamp(" + boost::lexical_cast<std::string>(row[tag_name].c_str()) + ")," +
-			"to_timestamp(" + new_value + "))";
-		} 
-		else
-		{
-			m_changeSQLStatement += boost::lexical_cast<std::string>(row[tag_name].c_str()) + "," +
-			sanitize(new_value) + ")";
-		}
-		//cout << "changeIteration " << m_changeSQLStatement << endl;
-		if(m_changeIteration++ == m_changeMaxIterations || m_changeMaxIterations <= 0)
-		{
-			m_changeIteration = 1;	//Reset iteration number
+			if (tag_name == "Destination")
+			{
+				m_changeSQLStatement += "'" + boost::lexical_cast<std::string>(row[tag_name].c_str()) + "'," +
+					"'" + sanitize(new_value) + "')";
+			} 
+			else if  (tag_name == "Eta")
+			{
+				m_changeSQLStatement += "to_timestamp(" + boost::lexical_cast<std::string>(row[tag_name].c_str()) + ")," +
+					"to_timestamp(" + new_value + "))";
+			} 
+			else
+			{
+				m_changeSQLStatement += boost::lexical_cast<std::string>(row[tag_name].c_str()) + "," +
+					sanitize(new_value) + ")";
+			}
 
-			//aisDebug("executing multirow insert start");
-			StatementExecutor statementExecutor(m_changeSQLStatement);
-			m_con->perform(statementExecutor);	//execute the statement
-			m_changeSQLStatement = string("");	//reset the statement
-			//aisDebug("executing multirow insert end");
+			if(m_changeIteration++ == m_changeMaxIterations || m_changeMaxIterations <= 0)
+			{
+				m_changeIteration = 1;	//Reset iteration number
+
+				StatementExecutor statementExecutor(m_changeSQLStatement);
+				m_con->perform(statementExecutor);	//execute the statement
+				m_changeSQLStatement = string("");	//reset the statement
+			}
+			return true;
 		}
-		return true;
+		catch(const exception &e)
+		{
+			cerr << "Error on change write iteration: " << m_changeIteration << endl;
+			cerr << "PostgreSQL Error : " << e.what() << endl;
+			return false;
+		}
 	}
 
 	bool UpdateStaticEntry(pqxx::tuple row, const AisMessage& message, string tag_name, string unique_ID)
 	{
 		string version = "'TEST'";
 		
-		m_changeSQLStatement = "UPDATE " + m_staticTableName + " SET ";
+		string updateStaticSQLStatement = "UPDATE " + m_staticTableName + " SET ";
 		
 		//Build the update SQL statement
-		m_changeSQLStatement += tag_name + " = ";
+		updateStaticSQLStatement += tag_name + " = ";
 		if (tag_name == "Destination")
 		{
-			m_changeSQLStatement += "'" + sanitize(boost::lexical_cast<std::string>(row[tag_name].c_str())) + "'";
+			updateStaticSQLStatement += "'" + sanitize(boost::lexical_cast<std::string>(row[tag_name].c_str())) + "'";
 			
 		} 
 		else if  (tag_name == "Eta")
 		{
-			m_changeSQLStatement += "to_timestamp(" + boost::lexical_cast<std::string>(row[tag_name].c_str()) + ")";
+			updateStaticSQLStatement += "to_timestamp(" + boost::lexical_cast<std::string>(row[tag_name].c_str()) + ")";
 
 		} 
 		else
 		{
-			m_changeSQLStatement +=  boost::lexical_cast<std::string>(row[tag_name].c_str());
+			updateStaticSQLStatement +=  boost::lexical_cast<std::string>(row[tag_name].c_str());
 		}
-		m_changeSQLStatement += ", Latest_Timestamp = ";
-		m_changeSQLStatement += "to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + ") " ;
+		updateStaticSQLStatement += ", latest_timestamp = ";
+		updateStaticSQLStatement += "to_timestamp(" + boost::lexical_cast<std::string>(message.getDATETIME()) + ") " ;
 
-		m_changeSQLStatement += " WHERE AIS_Static_ID = "  + boost::lexical_cast<std::string>(row["ais_static_id"].c_str());
-		cout << m_changeSQLStatement << endl;
-		StatementExecutor statementExecutor(m_changeSQLStatement);
+		updateStaticSQLStatement += " WHERE AIS_Static_ID = "  + boost::lexical_cast<std::string>(row["ais_static_id"].c_str());
+		cout << updateStaticSQLStatement << endl;
+		StatementExecutor statementExecutor(updateStaticSQLStatement);
 		m_con->perform(statementExecutor);	//execute the statement
-		m_changeSQLStatement = string("");	//reset the statement
+		updateStaticSQLStatement = string("");	//reset the statement
 			
 		return true;
 	}
@@ -717,16 +756,17 @@ private:
 		}
 		return(outputString);
 	}
+
 	bool writeTargetEntry(const AisMessage& message)
 	{
 		string altitude ="0.0";
-		string TARGET_NAME = "Target_Location";
+
 		try
 		{	
 			//Use the same max iterations number as the dynamic table
 			if(m_targetIteration == 1 || m_dynamicMaxIterations <= 0)
 			{
-				m_targetSQLStatement = "INSERT INTO " + TARGET_NAME + " VALUES(DEFAULT,";
+				m_targetSQLStatement = "INSERT INTO " + m_targetTableName + " VALUES(DEFAULT,";
 			}
 			else
 			{
@@ -740,25 +780,21 @@ private:
 				"ST_SetSRID(ST_Point(" +
 				boost::lexical_cast<std::string>(message.getLON())+ ", " +
 				boost::lexical_cast<std::string>(message.getLAT())+ "),4326)::geography)";
-			//Need to add version, gen_unique_id.  Need to add update capability to existing table	
 
-			//cout << m_targetSQLStatement << endl;
 			if(m_targetIteration++ ==m_dynamicMaxIterations || m_dynamicMaxIterations <= 0)
 			{
 				m_targetIteration = 1;
 
-				//aisDebug("executing multirow insert start");
 				StatementExecutor statementExecutor(m_targetSQLStatement);
 				m_con->perform(statementExecutor);
 				m_targetSQLStatement = string("");
-				//aisDebug("executing multirow insert end");
 			}
 			return true;
 
 		}
 		catch(const exception &e)
 		{
-			cerr << "Error on Iteration: " << m_targetIteration << endl;
+			cerr << "Error on target iteration: " << m_targetIteration << endl;
 			cerr << "PostgreSQL Error : " << e.what() << endl;
 
 			return false;
@@ -773,9 +809,12 @@ private:
 		cout << "Database Name: " << m_databaseName<< endl;
 		cout << "Static Table Name: " << m_staticTableName<< endl;
 		cout << "Dynamic Table Name: " << m_dynamicTableName<< endl;
+		cout << "Target Location Table Name: " << m_targetTableName<< endl;
+		cout << "Change Table Name: " << m_changeTableName<< endl;
 		cout << "Static Iteration: " << m_staticIteration<< endl;
 		cout << "Dynamic Iteration: " << m_dynamicIteration<< endl;
 		cout << "Change Iteration: " << m_changeIteration<< endl;
+		cout << "Target Location Iteration: " << m_targetIteration<< endl;
 		cout << "Initialized: " << m_initialized<< endl;
 
 		if(m_con)
@@ -807,6 +846,8 @@ private:
 	string m_databaseName;
 	string m_staticTableName;
 	string m_dynamicTableName;
+	string m_targetTableName;
+	string m_changeTableName;
 
 	int m_staticMaxIterations;
 	int m_dynamicMaxIterations;
