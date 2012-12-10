@@ -677,9 +677,11 @@ private:
 		
 		//Build the update SQL statement
 		updateStaticSQLStatement += tag_name + " = ";
-		if (tag_name == "Destination")
+		cout << "tag_name " << tag_name << endl;
+		if (tag_name == "destination")
 		{
 			updateStaticSQLStatement += "'" + sanitize(boost::lexical_cast<std::string>(row[tag_name].c_str())) + "'";
+			cout << m_changeSQLStatement << endl;
 			
 		} 
 		else if  (tag_name == "Eta")
