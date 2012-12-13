@@ -398,11 +398,11 @@ private:
 				AISPosit.setMMSI(bin2dec(AISBool, 8, 37));
 				PartNumber = bin2dec(AISBool,38,39);
 
-				if (PartNumber==1)
+				if (PartNumber == 0)
 				{
 					AISPosit.setVESSELNAME(bin2SixBitAISAscii(AISBool,40,159));
 				}
-				else
+				else if (PartNumber == 1)
 				{
 					AISPosit.setVESSELTYPEINT(bin2dec(AISBool,40,47));
 					AISPosit.setCALLSIGN(bin2SixBitAISAscii(AISBool,90,131));
@@ -416,6 +416,10 @@ private:
 					AISPosit.setSHIPLENGTH(bin2dec(AISBool, 132, 140) + bin2dec(AISBool, 141, 149));
 					// Width is Distance to Port + Distance to Starbord
 					AISPosit.setSHIPWIDTH(bin2dec(AISBool, 150,155) + bin2dec(AISBool, 156, 161));
+				}
+				else
+				{
+					//PartNumber of 2 or 3 is not allowed
 				}
 			}
 			break;
