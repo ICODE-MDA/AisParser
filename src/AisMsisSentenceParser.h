@@ -128,6 +128,7 @@ public:
 		else
 		{
 			aisDebug("Checksum * not found in message");
+			aisDebug(m_fullSentence);
 			return false;
 		}
 	}
