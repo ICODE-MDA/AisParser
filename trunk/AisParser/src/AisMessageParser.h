@@ -397,6 +397,7 @@ private:
 				AISPosit.setMESSAGETYPE(bin2dec(AISBool, 0, 5));
 				AISPosit.setMMSI(bin2dec(AISBool, 8, 37));
 				PartNumber = bin2dec(AISBool,38,39);
+				AISPosit.setPARTNUMBER(PartNumber);
 
 				if (PartNumber == 0)
 				{

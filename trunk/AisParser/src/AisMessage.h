@@ -107,17 +107,18 @@ public:
 		VESSELTYPEINT = -1;
 		SHIPLENGTH = -1;
 		SHIPWIDTH = -1;
-		BOW= -1;
-		STERN= -1;
-		PORT= -1;
-		STARBOARD= -1;
-		DRAUGHT= -1;
-		DESTINATION="";
-		CALLSIGN="";
-		POSACCURACY= -1;
-		ETA= -1;
-		POSFIXTYPE= -1;
-		STREAMID="";
+		BOW = -1;
+		STERN = -1;
+		PORT = -1;
+		STARBOARD = -1;
+		DRAUGHT = -1;
+		DESTINATION = "";
+		CALLSIGN = "";
+		POSACCURACY = -1;
+		ETA = -1;
+		PARTNUMBER = -1;
+		POSFIXTYPE = -1;
+		STREAMID = "";
 
 
 
@@ -170,6 +171,7 @@ public:
 			this->DESTINATION == lhs.getDESTINATION() &&
 			this->DRAUGHT == lhs.getDRAUGHT() &&
 			this->ETA == lhs.getETA() &&
+			this->PARTNUMBER == lhs.getPARTNUMBER() &&
 			this->IMO == lhs.getIMO() &&
 			this->LAT == lhs.getLAT() &&
 			this->LON == lhs.getLON() &&
@@ -464,6 +466,20 @@ public:
 	}
 
 	/**
+	* @return the PARTNUMBER 
+	*/
+	double getPARTNUMBER() const{
+		return PARTNUMBER;
+	}
+
+	/**
+	* @param PARTNUMBER the PARTNUMBER to set
+	*/
+	void setPARTNUMBER(double PARTNUMBER) {
+		this->PARTNUMBER = PARTNUMBER;
+	}
+
+	/**
 	* @return the POSFIXTYPE
 	*/
 	double getPOSFIXTYPE() const
@@ -520,6 +536,7 @@ private:
 	string CALLSIGN;
 	double POSACCURACY;
 	double ETA;
+	double PARTNUMBER;
 	double POSFIXTYPE;
 	string STREAMID;
 
