@@ -1,7 +1,7 @@
 #include <AisParserTemplates.h>
 
 //Output Type
-#include <AisPostgreSqlDatabaseWriter.h>
+#include <AisPostgreSqlDatabaseWriterSingleAISTable.h>
 
 //Input Type
 #include <AisFlatFileInputSource.h>
@@ -33,7 +33,7 @@ int main(int argc, char** argv)
 
 	AisFlatFileInputSource aisInputSource(filename);
 
-	databaseParser<AisPostgreSqlDatabaseWriter, AisSatSentenceParser>(aisInputSource,db_user, db_pass, db_host, db_name, db_table, db_numIterations, db_static_table);
+	databaseParser<AisPostgreSqlDatabaseWriterSingleAISTable, AisSatSentenceParser>(aisInputSource,db_user, db_pass, db_host, db_name, db_table, db_numIterations, db_static_table);
 	//databaseParser<AisPostgreSqlDatabaseWriter, AisMsisSentenceParser>(aisInputSource,db_user, db_pass, db_host, db_name, db_table, db_numIterations, db_static_table);
 
 	return 0;
