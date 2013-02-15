@@ -13,7 +13,7 @@
 int main(int argc, char** argv)
 {
 	//parse args
-	if(argc>9 || argc<8)
+	if(argc>10 || argc<8)
 	{
 		flatfileToDatabaseParserUsage();
 		return -1;
@@ -25,17 +25,28 @@ int main(int argc, char** argv)
 	string db_name = argv[5];
 	string db_table = argv[6];
 	string db_numIterations = argv[7];
-	string db_static_table = string("");
-	if(argc==9)
+	int unix_start = 0;
+	int unix_end = 0;
+	if(argc==10)
 	{
-		db_static_table= argv[8];
+		unix_start = atoi(argv[8]); 
+		unix_end = atoi(argv[9]);
+	}
+	if (unix_end < unix_start) {
+		cerr << "invalid start time entered: end time " << unix_end << " < " <<  "start_time " << unix_start << endl;
+		return -1;
 	}
 
 	AisFlatFileInputSource aisInputSource(filename);
-
-	databaseParser<AisPostgreSqlDatabaseWriterSingleAISTable, AisSatSentenceParser>(aisInputSource,db_user, db_pass, db_host, db_name, db_table, db_numIterations, db_static_table);
+	string db_static_table = "";
+	if (unix_start == 0) {
+		databaseParser<AisPostgreSqlDatabaseWriterSingleAISTable, AisSatSentenceParser>(aisInputSource,db_user, db_pass, db_host, 
+		db_name, db_table, db_numIterations, db_static_table);
+	} else {
+		databaseParserLimitTime<AisPostgreSqlDatabaseWriterSingleAISTable, AisSatSentenceParser>(aisInputSource,db_user, db_pass, db_host, 
+		db_name, db_table, db_numIterations, db_static_table, unix_start, unix_end);
+	}
 	//databaseParser<AisPostgreSqlDatabaseWriter, AisMsisSentenceParser>(aisInputSource,db_user, db_pass, db_host, db_name, db_table, db_numIterations, db_static_table);
 
 	return 0;
 }
-
