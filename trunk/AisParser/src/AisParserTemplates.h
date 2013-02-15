@@ -326,7 +326,108 @@ int databaseParser(AisInputSource& aisInputSource,string db_user, string db_pass
 	}
 	return 0;
 }
+template<class DatabaseWriterType, class AisSentenceParserType>
+int databaseParserLimitTime(AisInputSource& aisInputSource,string db_user, string db_pass, string db_host, string db_name, string db_table, 
+	string db_numIterations, string db_static_table, int unix_start, int unix_end )
+{
+	boost::timer::auto_cpu_timer timer;
 
+	bool splitStaticAndDynamic = false;
+	if(db_static_table!="")
+	{
+		splitStaticAndDynamic = true;
+	}
+	
+	
+	//Define output class (an AisWriter)
+	//STEPX: choose the correct type of output source
+	DatabaseWriterType aisWriterD(db_user, db_pass, db_host, db_name, db_table, boost::lexical_cast<int>(db_numIterations));
+	std::shared_ptr<DatabaseWriterType> aisWriterS;
+	if(splitStaticAndDynamic){
+		aisWriterS = std::shared_ptr<DatabaseWriterType>(new DatabaseWriterType(db_user, db_pass, db_host, db_name, db_static_table, boost::lexical_cast<int>(db_numIterations)));
+		if(!aisWriterS->isReady())
+		{
+			aisDebug("AisWriter is not ready");
+			return -1;
+		}
+	}
+
+	if(!aisWriterD.isReady())
+	{
+		aisDebug("AisWriter is not ready");
+		return -1;
+	}
+	while(aisInputSource.isReady())
+	{
+		//load the next sentence from the AIS input to the parser
+		//STEPX: choose the correct type of sentence parser
+		AisSentenceParserType aisSentenceParser(aisInputSource.getNextSentence());
+		AisMessageParser aisMessageParser;
+
+		if(aisSentenceParser.isMessageValid())
+		{
+			//This check is to make sure that if the first sentence of the message
+			//was bad we won't read the second sentence and parse it as a new message
+			if(aisSentenceParser.getSentenceNumber()==1)
+			{
+				aisMessageParser.addData(aisSentenceParser.getData());	
+				//if the current sentence is part of a multipart message
+				//grab the next message until you have them all, or message is invalid
+				try
+				{
+				while(aisSentenceParser.getSentenceNumber() < aisSentenceParser.getNumberOfSentences())
+				{
+					aisSentenceParser.setSentence(aisInputSource.getNextSentence());
+					if(aisSentenceParser.isMessageValid()){
+						aisMessageParser.addData(aisSentenceParser.getData());	
+					}
+					else
+					{
+						//aisDebug("Invalid multipart message:\n" + aisSentenceParser.getCurrentSentence());
+						throw std::runtime_error("Invalid multipart message");
+					}
+				}
+
+				AisMessage aisMessage = aisMessageParser.parseMessage();
+				//add time from ais sentence to the ais message
+				aisMessage.setDATETIME(aisSentenceParser.getTimestamp());
+				//add streamid from ais sentence to the ais message
+				aisMessage.setSTREAMID(aisSentenceParser.getStreamId());
+
+				int message_type = aisMessage.getMESSAGETYPE();
+				//check if static AIS message type and within time period
+				
+				if ((unix_start <= aisMessage.getDATETIME()) && (aisMessage.getDATETIME() <= unix_end))
+				{
+					cout << "Write Out: AIS time " << aisMessage.getDATETIME() << " unix_start " << unix_start << " unix_end " << unix_end << endl;
+					if ((message_type == 5 || message_type == 24) && splitStaticAndDynamic)
+					{
+						aisWriterS->writeEntry(aisMessage);
+					}
+					else
+					{
+						aisWriterD.writeEntry(aisMessage);
+					}	
+				}
+				}
+				catch(exception &e)
+				{
+					cerr << e.what() << endl;
+				}
+			}
+			else
+			{
+				aisDebug("First sentence of message was invalid/not receieved.\nSkipping the rest of the sentences of this message");
+				continue;
+			}
+		}
+		else
+		{
+			//aisDebug("Invalid message:\n" + aisSentenceParser.getCurrentSentence());
+		}
+	}
+	return 0;
+}
 void flatfileToDatabaseSchemaUsage()
 {
 	cerr << "This application will parse and push AIS messages to a database specified on the command line." << endl;
