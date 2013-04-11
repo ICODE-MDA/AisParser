@@ -97,10 +97,35 @@ public:
 		boost::algorithm::replace_all(input, ">", "&gt;");
 		boost::algorithm::replace_all(input, "&", "&amp;");
 	}
-
+	//requires: trackIdx<aisTracks.size()
+	bool vesselTypeCheck(unsigned int trackIdx, int vesselTypeMin, int vesselTypeMax)
+	{
+		bool vesselFound = false;
+		if(trackIdx >= m_trackSet.size()){
+			aisDebug("AisTrackSet::writeTrack the trackIdx exceeds the maximum index of aisTrackSet");
+			return(vesselFound);
+		}
+		
+		for(int staticMessageIdx = 0; staticMessageIdx < m_trackSet[trackIdx].m_messages.size(); staticMessageIdx++)
+		{
+			if (m_trackSet[trackIdx].m_messages[staticMessageIdx].getVESSELTYPEINT() >= vesselTypeMin && 
+				m_trackSet[trackIdx].m_messages[staticMessageIdx].getVESSELTYPEINT() <= vesselTypeMax)
+			{
+				//cout << " VesselTypeInt " << m_trackSet[trackIdx].m_messages[staticMessageIdx].getVESSELTYPEINT() << endl;
+				vesselFound = true;
+			}
+			else
+			{
+				vesselFound = false;
+			}
+		}		
+		
+		return(vesselFound);
+	}
 	//requires: trackIdx<aisTracks.size()
 	void writeTrack(unsigned int trackIdx)
 	{
+		
 		if(trackIdx >= m_trackSet.size()){
 			aisDebug("AisTrackSet::writeTrack the trackIdx exceeds the maximum index of aisTrackSet");
 			return;
@@ -111,7 +136,10 @@ public:
 		{
 			vesselNames += m_trackSet[trackIdx].m_messages[staticMessageIdx].getVESSELNAME() + " - ";
 		}
-
+		if (m_trackSet[trackIdx].m_messages.size() < 1)
+		{
+			cout << "about to write out tracks for trackIdx " << trackIdx << " MMSI " << m_trackSet[trackIdx].getMMSI() << endl;
+		}
 		replaceBracketsAndAmpersands(vesselNames);
 		of << "<Placemark>" << endl;
 		of << "	<name>" << vesselNames << "</name>" << endl;
@@ -124,8 +152,8 @@ public:
 			of << "			Navigation Status:" << m_trackSet[trackIdx].m_messages[staticMessageIdx].getNAVSTATUS() << "<br>" << endl;
 			//of << "			ROT:" << m_trackSet[trackIdx].m_messages[staticMessageIdx].getROT() << "<br>" << endl;
 			//of << "			SOG:" << m_trackSet[trackIdx].m_messages[staticMessageIdx].getSOG() << "<br>" << endl;
-			//of << "			LON:" << m_trackSet[trackIdx].m_messages[staticMessageIdx].getLON() << "<br>" << endl;
-			//of << "			LAT:" << m_trackSet[trackIdx].m_messages[staticMessageIdx].getLAT() << "<br>" << endl;
+			of << "			LON:" << m_trackSet[trackIdx].m_messages[staticMessageIdx].getLON() << "<br>" << endl;
+			of << "			LAT:" << m_trackSet[trackIdx].m_messages[staticMessageIdx].getLAT() << "<br>" << endl;
 			//of << "			COG:" << m_trackSet[trackIdx].m_messages[staticMessageIdx].getCOG() << "<br>" << endl;
 			//of << "			True Heading:" << m_trackSet[trackIdx].m_messages[staticMessageIdx].getTRUE_HEADING() << "<br>" << endl;
 			of << "			Date Time:" << m_trackSet[trackIdx].m_messages[staticMessageIdx].getDATETIME() << "<br>" << endl;
@@ -243,6 +271,54 @@ public:
 
 			for(unsigned int trackCount = 0; ((m_tracksPerFile == 0) || (trackCount < m_tracksPerFile)) && (currentTrack < m_trackSet.size()); trackCount++){
 				writeTrack(currentTrack++);
+			}
+			closeFile();
+		}
+	}
+
+	void writeToFileVesslTypeLimt(int vesselTypeMin, int vesselTypeMax){
+		unsigned int currentTrack = 0, numVesselFound = 0;
+		bool vesselFound, initOpen = true;
+		while(currentTrack < m_trackSet.size() )
+		{
+			//Open a file initially or when number of vessels has reached track limit per file
+			if (initOpen || (numVesselFound > m_tracksPerFile))
+			{
+				std::string currentFilename = m_filename + ".p" + boost::lexical_cast<string>(m_currentPartition++) + ".kml";
+				aisDebug("Writing to file: " << currentFilename );
+				of.open(currentFilename, std::ios::out);
+		
+				if(of.is_open())
+				{
+					of << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
+					of << "<kml xmlns=\"http://www.opengis.net/kml/2.2\">" << endl;
+					of << "<Document>" << endl;
+					of << "<Style id=\"yellowLineGreenPoly\">" << endl;
+					of << "	<LineStyle>" << endl;
+					of << "		<color>7f00ffff</color>" << endl;
+					of << "		<width>4</width>" << endl;
+					of << "	</LineStyle>" << endl;
+					of << "	<PolyStyle>" << endl;
+					of << "		<color>7f00ff00</color>" << endl;
+					of << "	</PolyStyle>" << endl;
+					of << "</Style>" << endl;
+				}
+				else
+				{
+					aisDebug("kml file writer not ready");
+				}
+				//Reset number of vessels to force a new file
+				numVesselFound = 0;
+			}
+
+			for(unsigned int trackCount = 0; ((m_tracksPerFile == 0) || (numVesselFound < m_tracksPerFile) || (trackCount < m_tracksPerFile) ) && (currentTrack < m_trackSet.size()); trackCount++){
+				vesselFound = vesselTypeCheck(currentTrack, vesselTypeMin, vesselTypeMax);
+				if (vesselFound && m_trackSet[currentTrack].size() > 0)
+				{
+					writeTrack(currentTrack);
+					numVesselFound++;
+				}
+				currentTrack++;
 			}
 			closeFile();
 		}
