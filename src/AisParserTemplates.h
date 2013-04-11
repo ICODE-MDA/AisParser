@@ -130,11 +130,9 @@ int flatfileParser(AisInputSource& aisInputSource, string filename, unsigned int
 
 void trackParserUsage()
 {
-	cerr << "AisParserApp.exe <input-filename> <number-of-entries-per-tsv>" << endl;
-	cerr << "Will create a file named <input-filename>.p<partition-number>.tsv with the parsed AIS.\nThis file will be suitable for uploading using SQL Loader." << endl;
-	cerr << "<number-of-entries-per-tsv> is the number of entries per file.\nIt will create mutliple files named <input-filename><file-number>.tsv.\nIf set to 0, it will push all to a single file." << endl;
+	cerr << "LogToKmlTrack.exe <tracks-per-kml-file> <input-AIS-log-filename> w optional AOI & vessel type <llLat> <urLat> <llLon> <urLon> <vesselTypeMin> <vesselTypeMax>" << endl;
+	cerr << "Will create a kml track file input-AIS-log-filename.kml for AIS log file <input-AIS-log-filename>.\nThis file will be suitable for uploading Google Earth." << endl;
 }
-
 template<class TrackWriterType, class AisSentenceParserType>
 int trackParser(AisInputSource& aisInputSource, string filename, unsigned int tracksPerFile)
 {	
@@ -183,6 +181,7 @@ int trackParser(AisInputSource& aisInputSource, string filename, unsigned int tr
 						//add streamid from ais sentence to the ais message
 						aisMessage.setSTREAMID(aisSentenceParser.getStreamId());
 						//aisWriter.writeEntry(aisMessage);
+						cout << " message type " << aisMessage.getMESSAGETYPE() << endl;
 						aisWriter.writeEntry(aisMessage);
 					}
 					catch(exception &e)
@@ -209,6 +208,102 @@ int trackParser(AisInputSource& aisInputSource, string filename, unsigned int tr
 
 }
 
+template<class TrackWriterType, class AisSentenceParserType>
+int trackParserLimited(AisInputSource& aisInputSource, string filename, unsigned int tracksPerFile, double urLat, double llLat, double urLon, double llLon,
+	int vesselTypeMin, int vesselTypeMax)
+{	
+	boost::timer::auto_cpu_timer timer;
+
+	unsigned int partition = 0;
+	TrackWriterType aisWriter(filename, tracksPerFile);
+
+	while(aisInputSource.isReady())
+	{
+		while(aisInputSource.isReady())
+		{
+
+			//load the next sentence from the AIS input to the parser
+			//STEPX: choose the correct type of sentence parser
+			AisSentenceParserType aisSentenceParser(aisInputSource.getNextSentence());
+			AisMessageParser aisMessageParser;
+
+			if(aisSentenceParser.isMessageValid())
+			{
+				//This check is to make sure that if the first sentence of the message
+				//was bad we won't read the second sentence and parse it as a new message
+				if(aisSentenceParser.getSentenceNumber()==1)
+				{
+					aisMessageParser.addData(aisSentenceParser.getData());	
+					//if the current sentence is part of a multipart message
+					//grab the next message until you have them all, or message is invalid
+					try
+					{
+						while(aisSentenceParser.getSentenceNumber() < aisSentenceParser.getNumberOfSentences())
+						{
+							aisSentenceParser.setSentence(aisInputSource.getNextSentence());
+							if(aisSentenceParser.isMessageValid()){
+								aisMessageParser.addData(aisSentenceParser.getData());	
+							}
+							else
+							{
+								//aisDebug("Invalid multipart message:\n" + aisSentenceParser.getCurrentSentence());
+								throw std::runtime_error("Invalid multipart message");
+							}
+						}
+
+						AisMessage aisMessage = aisMessageParser.parseMessage();
+						//add time from ais sentence to the ais message
+						aisMessage.setDATETIME(aisSentenceParser.getTimestamp());
+						//add streamid from ais sentence to the ais message
+						aisMessage.setSTREAMID(aisSentenceParser.getStreamId());
+						// Limit tracks by AOI of vesseltype
+						double AIS_LAT = aisMessage.getLAT();
+						double AIS_LON = aisMessage.getLON();
+						int AIS_VESSELTYPE = aisMessage.getVESSELTYPEINT();
+						string AIS_VESSELNAME = aisMessage.getVESSELNAME();
+						int AIS_MESSAGETYPE = aisMessage.getMESSAGETYPE();
+						//Test Dynamic messages for AOI - Static Data message have -999 as default for LAT and LON
+						if (AIS_LAT != -999 && AIS_LON != -999)
+						{
+							
+							if (AIS_LAT <= urLat && AIS_LAT >= llLat && AIS_LON <= urLon && AIS_LON >= llLon)
+							{
+								if (AIS_MESSAGETYPE == 19) //Need to add both static and dynamic data
+								{
+									aisWriter.writeEntry(aisMessage); //write static data 
+								}
+								aisWriter.writeEntry(aisMessage);
+							}
+						}
+						else
+						{
+							aisWriter.writeEntry(aisMessage);
+						}
+
+					}
+					catch(exception &e)
+					{
+						cerr << e.what() << endl;
+					}
+				}
+				else
+				{
+					aisDebug("First sentence of message was invalid/not receieved.\nSkipping the rest of the sentences of this message");
+					continue;
+				}
+			}
+			else
+			{
+				//aisDebug("Invalid message:\n" + aisSentenceParser.getCurrentSentence());
+			}
+		}
+	}
+	cout << "before writeToFile " << endl;
+	aisWriter.writeToFileVesslTypeLimt(vesselTypeMin, vesselTypeMax);
+
+	return 0;
+
+}
 
 
 void tcpToDatabaseParserUsage()
