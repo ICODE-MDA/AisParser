@@ -21,6 +21,7 @@ public:
 	
 	void addStaticMessageInfo(const AisMessage &m)
 	{
+		
 		for(int i=0; i<m_messages.size(); i++)
 		{
 			if(m.equalWithExceptionOfTime(m_messages[i]))
@@ -37,6 +38,11 @@ public:
 	{
 		if((message.getMESSAGETYPE() == 5) || (message.getMESSAGETYPE() == 24))
 		{
+			addStaticMessageInfo(message);
+		}
+		else if (message.getMESSAGETYPE() == 19) // Message type has dynamic and static data, Add static data only here
+		{
+			//cout << "Message type 19 MMSI " << fixed << message.getMMSI() << endl;
 			addStaticMessageInfo(message);
 		}
 		else
