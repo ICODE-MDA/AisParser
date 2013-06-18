@@ -46,7 +46,7 @@ void loadData(string filename, vector<string> &messages)
 int main(int argc, char** argv)
 {
 
-	if(argc>5)
+	if(argc>5 || argc < 2)
 	{
 		usage();
 		return -1;
@@ -83,7 +83,7 @@ int main(int argc, char** argv)
 		tcp::acceptor acceptor(io_service, endpoint);
 		tcp::iostream stream;
 		boost::system::error_code ec;
-		cout << "Are you ready to send data ";
+		cout << "Are you ready to send data?";
 		string ans;
 		cin >> ans;
 		cout << "Your answer " << ans << endl;
