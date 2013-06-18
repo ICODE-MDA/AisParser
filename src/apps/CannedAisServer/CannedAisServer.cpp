@@ -17,7 +17,7 @@ void usage()
 	std::cerr << "This program will broadcast text on a TCP port specified on the command prompt" << endl;
 	std::cerr << "Each AIS message must be no longer than 1024 characters" << std::endl;
 	std::cerr << "\nUsage:" << endl;
-	std::cerr << "CannedAisServer.exe <ais-file-to-broadcast> <port-to-broadcast-on> <ms-between-messages>" << std::endl;
+	std::cerr << "CannedAisServer.exe <ais-file-to-broadcast> <port-to-broadcast-on> <ms-between-messages> <option keepRepeating (bool)>" << std::endl;
 	std::cerr << "For example:\nCannedAisServer.exe 20120101.log 2401 10" << std::endl;
 	std::cerr << "****WARNING****\nThis program loads the entire file into memory before broadcasting. " 
 				 "It is meant for small amounts of data. Do not give large files as input as it may "
@@ -46,7 +46,7 @@ void loadData(string filename, vector<string> &messages)
 int main(int argc, char** argv)
 {
 
-	if(argc!=4)
+	if(argc>5)
 	{
 		usage();
 		return -1;
@@ -55,6 +55,11 @@ int main(int argc, char** argv)
 	string filename = argv[1];
 	int port = boost::lexical_cast<int>(argv[2]);
 	int msBetweenMessages = boost::lexical_cast<int>(argv[3]);
+	int keepRepeating = 1;
+	if (argc == 5) {
+		keepRepeating = boost::lexical_cast<int>(argv[4]);
+		
+	}
 
 	std::vector <std::string> messages;
 	cout << "Loading data from: " << filename << endl;
@@ -78,14 +83,29 @@ int main(int argc, char** argv)
 		tcp::acceptor acceptor(io_service, endpoint);
 		tcp::iostream stream;
 		boost::system::error_code ec;
+		cout << "Are you ready to send data ";
+		string ans;
+		cin >> ans;
+		cout << "Your answer " << ans << endl;
 		acceptor.accept(*stream.rdbuf(), ec);
+		
+		
 		while (!ec)
 		{
+			if (idx < 20) {
+				cout << "Message # " << idx << messages[idx] << endl;
+			}
 			boost::asio::deadline_timer timer(io_service, boost::posix_time::milliseconds(msBetweenMessages));
 			timer.wait();
 			stream << messages[idx++] << endl;
+			
 			if(idx==numMessages){
-				idx =0;
+				if (keepRepeating) {
+					idx =0;
+				} else {
+					cout << "Exit: End of file reached " << endl;
+					exit(1);
+				}
 			}
 		}
 	}
