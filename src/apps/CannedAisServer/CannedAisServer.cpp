@@ -83,17 +83,17 @@ int main(int argc, char** argv)
 		tcp::acceptor acceptor(io_service, endpoint);
 		tcp::iostream stream;
 		boost::system::error_code ec;
-		cout << "Are you ready to send data?";
-		string ans;
-		cin >> ans;
-		cout << "Your answer " << ans << endl;
+		//cout << "Are you ready to send data?";
+		//string ans;
+		//cin >> ans;
+		//cout << "Your answer " << ans << endl;
 		acceptor.accept(*stream.rdbuf(), ec);
 		
 		
 		while (!ec)
 		{
-			if (idx < 20) {
-				cout << "Message # " << idx << messages[idx] << endl;
+			if (idx < numMessages) {
+				cout << "Message #" << idx << ": " << messages[idx] << endl;
 			}
 			boost::asio::deadline_timer timer(io_service, boost::posix_time::milliseconds(msBetweenMessages));
 			timer.wait();
@@ -102,7 +102,8 @@ int main(int argc, char** argv)
 			if(idx==numMessages){
 				if (keepRepeating) {
 					idx =0;
-				} else {
+				} 
+				else {
 					cout << "Exit: End of file reached " << endl;
 					exit(1);
 				}
