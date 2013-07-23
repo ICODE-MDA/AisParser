@@ -83,10 +83,6 @@ int main(int argc, char** argv)
 		tcp::acceptor acceptor(io_service, endpoint);
 		tcp::iostream stream;
 		boost::system::error_code ec;
-		//cout << "Are you ready to send data?";
-		//string ans;
-		//cin >> ans;
-		//cout << "Your answer " << ans << endl;
 		acceptor.accept(*stream.rdbuf(), ec);
 		
 		
