@@ -1,7 +1,7 @@
 #include <AisParserTemplates.h>
 
 //Output Type
-#include <AisPostgreSqlDatabaseWriter.h>
+#include <AisPostgreSqlDatabaseWriterSingleAISTable.h>
 
 //Input Type
 #include <AisTcpStreamInputSource.h>
@@ -18,7 +18,7 @@
 int main(int argc, char** argv)
 {
 	//parse args
-	if(argc>10 || argc<9)
+	if(argc>9 || argc<8)
 	{
 		tcpToDatabaseParserUsage();
 		return -1;
@@ -35,17 +35,17 @@ int main(int argc, char** argv)
 	string db_name = argv[6];
 	string db_table = argv[7];
 	string db_numIterations = argv[8];
-	string db_static_table = string("");
-	if(argc==9)
+	//string db_static_table = string("");
+	/*if(argc==9)
 	{
 		db_static_table= argv[8];
-	}
+	}*/
 	
 	//Define input class (an AisInputSource)
 	//STEPX: choose the correct type of input source
 	AisTcpStreamInputSource aisInputSource(host, port);
 
-	databaseParser<AisPostgreSqlDatabaseWriter, AisSatSentenceParser>(aisInputSource,db_user, db_pass, db_host, db_name, db_table, db_numIterations, db_static_table);
+	databaseParser<AisPostgreSqlDatabaseWriterSingleAISTable, AisSatSentenceParser>(aisInputSource,db_user, db_pass, db_host, db_name, db_table, db_numIterations, db_table);
 	return 0;
 }
 
