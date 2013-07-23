@@ -308,9 +308,7 @@ int trackParserLimited(AisInputSource& aisInputSource, string filename, unsigned
 
 void tcpToDatabaseParserUsage()
 {
-	cerr << "AisParserApp.exe <hostname> <port> <db-username> <db-password> <db-hostname> <db-name> <db-table> <db-numIterations> [<db-static-table>]" << endl;
-	cerr << "For example:\n AisParserApp.exe localhost 2410 username password databaseserver.example.com exampleDB AISTable 100000 staticAisTable" << endl;
-	cerr << "...OR..." << endl;
+	cerr << "TcpToPostgreSqlDb.exe <TCIP_hostname> <TCIP_port> <db-username> <db-password> <db-hostname> <db-name> <db-table> <db-numIterations>" << endl;
 	cerr << "For example:\n AisParserApp.exe localhost 2410 username password databaseserver.example.com exampleDB AISTable 100000" << endl;
 }
 
