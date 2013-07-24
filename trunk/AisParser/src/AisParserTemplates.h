@@ -311,7 +311,11 @@ void tcpToDatabaseParserUsage()
 	cerr << "TcpToPostgreSqlDb.exe <TCIP_hostname> <TCIP_port> <db-username> <db-password> <db-hostname> <db-name> <db-table> <db-numIterations>" << endl;
 	cerr << "For example:\n AisParserApp.exe localhost 2410 username password databaseserver.example.com exampleDB AISTable 100000" << endl;
 }
-
+void tcpToDatabaseParserWtableUsage()
+{
+	cerr << "TcpToPostgreSqlDbWtable.exe <TCIP_hostname> <TCIP_port> <db-username> <db-password> <db-hostname> <db-name> <db-table> <db-numIterations>" << endl;
+	cerr << "For example:\n AisParserApp.exe localhost 2410 username password databaseserver.example.com exampleDB 100000" << endl;
+}
 void flatfileToDatabaseParserUsage()
 {
 	cerr << "This application will parse and push AIS messages to a database specified on the command line." << endl;
