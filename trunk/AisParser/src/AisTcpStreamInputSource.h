@@ -37,9 +37,13 @@ public:
 
 	AisTcpStreamInputSource(std::string host, std::string port)
 	{
-        connect(host, port);
+		connect(host, port);
 	}
 
+	AisTcpStreamInputSource(std::string host, std::string port, boost::posix_time::time_duration endTime)
+	{
+		connect(host, port, endTime);
+	}
     void connect(std::string host, std::string port){
         try
         {
@@ -59,7 +63,27 @@ public:
             std::cout << "Exception: " << e.what() << std::endl;
         }
     }
-
+	void connect(std::string host, std::string port,boost::posix_time::time_duration endTime){
+        try
+        {
+            aisDebug("Attemping to connect to: " + host + " port: " + port + " until " + boost::lexical_cast<std::string>(endTime.total_seconds()) 
+				+ " seconds or Zulu Midnight");
+			stream.expires_from_now(boost::posix_time::seconds(endTime.total_seconds()));
+            stream.connect(host, port);
+            if (!stream)
+            {
+                std::cout << "Unable to connect: " << stream.error().message() << std::endl;
+            }
+            else
+            {
+                aisDebug("Connected");
+            }
+        }
+        catch (std::exception& e)
+        {
+            std::cout << "Exception: " << e.what() << std::endl;
+        }
+    }
 	/**
 	Returns true if the input source is ready
 	to start providing data, false otherwhise
