@@ -38,8 +38,9 @@ public:
 		m_sqlStatement("")
 	{
 		m_initialized = init();
+		m_createTable = createTable();
 	}
-
+	
 	~AisPostgreSqlDatabaseWriterSingleAISTable()
 	{
 		aisDebug("AisPostgreSqlDatabaseWriterSingleAISTable Destructor");
@@ -413,7 +414,55 @@ private:
 			return false;
 		}
 
-		aisDebug("Database initialized successfully");
+		aisDebug("Init: Database initialized successfully");
+		return true;
+
+	}
+	private:
+
+	bool createTable()
+	{
+		
+		try
+		{
+			m_sqlStatement = "CREATE TABLE IF NOT EXISTS " + m_tableName;
+			m_sqlStatement += "(key_column bigserial NOT NULL, ";
+			m_sqlStatement += "messagetype double precision, ";
+			m_sqlStatement += "mmsi double precision NOT NULL DEFAULT (0)::double precision, ";
+			m_sqlStatement += "navstatus numeric(10,0) DEFAULT 0, ";
+			m_sqlStatement += "rot double precision, ";
+			m_sqlStatement += "sog double precision, ";
+			m_sqlStatement += "lon double precision, ";
+			m_sqlStatement += "lat double precision, ";
+			m_sqlStatement += "cog double precision, ";
+			m_sqlStatement += "true_heading double precision, ";
+			m_sqlStatement += "datetime double precision, ";
+			m_sqlStatement += "imo double precision, ";
+			m_sqlStatement += "vesselname character varying(128) DEFAULT NULL::character varying, ";
+			m_sqlStatement += "vesseltypeint double precision, ";
+			m_sqlStatement += "length double precision, ";
+			m_sqlStatement += "shipwidth double precision, ";
+			m_sqlStatement += "bow double precision, ";
+			m_sqlStatement += "stern double precision, ";
+			m_sqlStatement += "port double precision, ";
+			m_sqlStatement += "starboard double precision, ";
+			m_sqlStatement += "draught double precision, ";
+			m_sqlStatement += "destination character varying(128) DEFAULT NULL::character varying, ";
+			m_sqlStatement += "callsign character varying(128) DEFAULT NULL::character varying, ";
+			m_sqlStatement += "posaccuracy double precision, ";
+			m_sqlStatement += "eta double precision, ";
+			m_sqlStatement += "posfixtype double precision, ";
+			m_sqlStatement += "streamid character varying(36) DEFAULT NULL::character varying, ";
+			m_sqlStatement += "CONSTRAINT " + m_tableName + "_pkey PRIMARY KEY (key_column))";
+			StatementExecutor statementExecutor(m_sqlStatement);
+			m_con->perform(statementExecutor);
+			m_sqlStatement = string("");
+		}
+		catch (const exception &e)
+		{      
+			std::cerr << "Statement Creation Error : " << e.what() << std::endl;
+			return false;
+		} 
 		return true;
 
 	}
@@ -457,7 +506,7 @@ private:
 	int m_iterations;
 	int m_currentIteration;
 	bool m_initialized;
-	
+	bool m_createTable;
 	string m_sqlStatement;
 	std::shared_ptr<pqxx::connection>  m_con;
 };
