@@ -29,8 +29,8 @@ int main(int argc, char** argv)
 	string db_numIterations = argv[7];
 	bool parseRadarData = false;
 	bool timeLimit = false;
-	bool create_RadarTable = false;
-	bool create_AISTable = false;
+	bool create_RadarTable = true;
+	bool create_AISTable = true;
 	string db_radar_table;
 	if (argc == 9)
 	{
@@ -56,15 +56,15 @@ int main(int argc, char** argv)
 
 	AisFlatFileInputSource aisInputSource(filename);
 	string db_static_table = "";
-	if (timeLimit) 
+	if (timeLimit) //create tables if they don't exist
 	{
 		databaseParserAIS_RadarLimitTime<AisPostgreSqlDatabaseWriterRadarAISTable, AisSatSentenceParser>(aisInputSource,db_user, db_pass, db_host, 
 		db_name, db_table, db_numIterations, db_radar_table, unix_start, unix_end,create_RadarTable, create_AISTable);
-	} else if (!timeLimit && parseRadarData) 
+	} else if (!timeLimit && parseRadarData) //create tables if they don't exist
 	{
 		databaseParserAIS_Radar<AisPostgreSqlDatabaseWriterRadarAISTable, AisSatSentenceParser>(aisInputSource,db_user, db_pass, db_host, db_name, db_table, 
 				db_numIterations, db_radar_table, create_RadarTable, create_AISTable);
-	} else // parse only AIS and skip radar data
+	} else // parse only AIS and skip radar data and does not create table
 	{
 		databaseParser<AisPostgreSqlDatabaseWriterSingleAISTable, AisSatSentenceParser>(aisInputSource,db_user, db_pass, db_host, 
 		db_name, db_table, db_numIterations, db_static_table);
