@@ -2,6 +2,7 @@
 
 //Output Type
 #include <AisPostgreSqlDatabaseWriterSingleAISTable.h>
+#include <AisPostgreSqlDatabaseWriterRadarAISTable.h>
 
 //Input Type
 #include <AisFlatFileInputSource.h>
@@ -13,9 +14,10 @@
 int main(int argc, char** argv)
 {
 	//parse args
-	if(argc>10 || argc<8)
+	cout << "argc " << argc << endl;
+	if(argc!=8 && argc!=9 && argc!=11)
 	{
-		flatfileToDatabaseParserUsage();
+		LogToPostgreSqlDb();
 		return -1;
 	}
 	string filename = argv[1];
@@ -25,28 +27,49 @@ int main(int argc, char** argv)
 	string db_name = argv[5];
 	string db_table = argv[6];
 	string db_numIterations = argv[7];
+	bool parseRadarData = false;
+	bool timeLimit = false;
+	bool create_RadarTable = false;
+	bool create_AISTable = false;
+	string db_radar_table;
+	if (argc == 9)
+	{
+		parseRadarData = true;
+		db_radar_table = argv[8];
+	}
 	int unix_start = 0;
 	int unix_end = 0;
-	if(argc==10)
+	if(argc==11)
 	{
-		unix_start = atoi(argv[8]); 
-		unix_end = atoi(argv[9]);
+		timeLimit = true;
+		parseRadarData = true;
+		db_radar_table = argv[8];
+		unix_start = atoi(argv[9]); 
+		unix_end = atoi(argv[10]);
 	}
-	if (unix_end < unix_start) {
+	
+	if (unix_end < unix_start) 
+	{
 		cerr << "invalid start time entered: end time " << unix_end << " < " <<  "start_time " << unix_start << endl;
 		return -1;
 	}
 
 	AisFlatFileInputSource aisInputSource(filename);
 	string db_static_table = "";
-	if (unix_start == 0) {
+	if (timeLimit) 
+	{
+		databaseParserAIS_RadarLimitTime<AisPostgreSqlDatabaseWriterRadarAISTable, AisSatSentenceParser>(aisInputSource,db_user, db_pass, db_host, 
+		db_name, db_table, db_numIterations, db_radar_table, unix_start, unix_end,create_RadarTable, create_AISTable);
+	} else if (!timeLimit && parseRadarData) 
+	{
+		databaseParserAIS_Radar<AisPostgreSqlDatabaseWriterRadarAISTable, AisSatSentenceParser>(aisInputSource,db_user, db_pass, db_host, db_name, db_table, 
+				db_numIterations, db_radar_table, create_RadarTable, create_AISTable);
+	} else // parse only AIS and skip radar data
+	{
 		databaseParser<AisPostgreSqlDatabaseWriterSingleAISTable, AisSatSentenceParser>(aisInputSource,db_user, db_pass, db_host, 
 		db_name, db_table, db_numIterations, db_static_table);
-	} else {
-		databaseParserLimitTime<AisPostgreSqlDatabaseWriterSingleAISTable, AisSatSentenceParser>(aisInputSource,db_user, db_pass, db_host, 
-		db_name, db_table, db_numIterations, db_static_table, unix_start, unix_end);
+	
 	}
-	//databaseParser<AisPostgreSqlDatabaseWriter, AisMsisSentenceParser>(aisInputSource,db_user, db_pass, db_host, db_name, db_table, db_numIterations, db_static_table);
 
 	return 0;
 }
