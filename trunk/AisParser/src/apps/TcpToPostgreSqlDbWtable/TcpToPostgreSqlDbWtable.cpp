@@ -1,7 +1,7 @@
 #include <AisParserTemplates.h>
 
 //Output Type
-#include <AisPostgreSqlDatabaseWriterSingleAISTable.h>
+#include <AisPostgreSqlDatabaseWriterRadarAISTable.h>
 
 //Input Type
 #include <AisTcpStreamInputSource.h>
@@ -19,13 +19,12 @@ int main(int argc, char** argv)
 {
 	
 	//parse args
-	if(argc != 8 )
+	if(argc !=8 && argc != 10 )
 	{
 		tcpToDatabaseParserWtableUsage();
 		return -1;
 	}
 	
-
 	boost::timer::auto_cpu_timer timer;
 
 	std::string host = argv[1];
@@ -35,28 +34,52 @@ int main(int argc, char** argv)
 	string db_host = argv[5];
 	string db_name = argv[6];
 	string db_numIterations = argv[7];
-	string db_table;
-	//while (1) {
-		const boost::posix_time::ptime utcNow = boost::posix_time::second_clock::universal_time();
+	string aisDb_table;
+	string radarDb_table;
+	bool createDbTableName = true;
+	bool create_RadarTable = true;
+	bool create_AISTable = true;
+	if (argc == 10)
+	{
+		aisDb_table = argv[8];
+		radarDb_table = argv[9];
+		createDbTableName = false;
+	}
+	while (1) {
+		//Needed to declare AisTcpStreamInputSource for each case - create or not create a new table
+		if (createDbTableName) 
+		{
+			const boost::posix_time::ptime utcNow = boost::posix_time::second_clock::universal_time();
 	
-		cout << "utc date " << utcNow.date() << " hour " << utcNow.time_of_day().hours() <<  " min " << utcNow.time_of_day().minutes();
-		cout << " sec " << utcNow.time_of_day().seconds() << endl;
+			//cout << "utc date " << utcNow.date() << " hour " << utcNow.time_of_day().hours() <<  " min " << utcNow.time_of_day().minutes();
+			//cout << " sec " << utcNow.time_of_day().seconds() << endl;
 
-		boost::gregorian::date today = utcNow.date();
-		boost::gregorian::date tomorrow = today + boost::gregorian::days(1);
-		boost::posix_time::ptime tomorrow_start(tomorrow); //midnight tomorrow
-		boost::posix_time::time_duration endTime = tomorrow_start - utcNow;
+			boost::gregorian::date today = utcNow.date();
+			boost::gregorian::date tomorrow = today + boost::gregorian::days(1);
+			boost::posix_time::ptime tomorrow_start(tomorrow); //midnight tomorrow
+			boost::posix_time::time_duration endTime = tomorrow_start - utcNow;
 
-		//Define input class (an AisInputSource)
-		//STEPX: choose the correct type of input source
-	
-		AisTcpStreamInputSource aisInputSource(host, port, endTime);
-		db_table = "ter_" + boost::gregorian::to_iso_string(today);
+			//Define input class (an AisInputSource)
+			//STEPX: choose the correct type of input source
+			
+			AisTcpStreamInputSource aisInputSource(host, port, endTime);
+			aisDb_table = "ter_" + boost::gregorian::to_iso_string(today);
+			radarDb_table = "radar_" + boost::gregorian::to_iso_string(today);
+			cout << "aisDb_table " << aisDb_table << " radarDb_table " << radarDb_table << endl;
+			databaseParserAIS_Radar<AisPostgreSqlDatabaseWriterRadarAISTable, AisSatSentenceParser>(aisInputSource,db_user, db_pass, db_host, db_name, aisDb_table, 
+				db_numIterations, radarDb_table, create_RadarTable, create_AISTable);
 		
-		cout << "Writting TV-32 data to  " << db_table << " for " << endTime.total_seconds() << " seconds" << endl;
-		databaseParser<AisPostgreSqlDatabaseWriterSingleAISTable, AisSatSentenceParser>(aisInputSource,db_user, db_pass, 
-			db_host, db_name, db_table, db_numIterations, db_table);
-	//}
+			cout << "Writting TV-32 aid data to  " << aisDb_table << " and Radar to " << radarDb_table << " for " << endTime.total_seconds() << " seconds" << endl;
+		} else
+		{
+			//Define input class (an AisInputSource)
+			//STEPX: choose the correct type of input source
+	
+			AisTcpStreamInputSource aisInputSource(host, port);
+			databaseParserAIS_Radar<AisPostgreSqlDatabaseWriterRadarAISTable, AisSatSentenceParser>(aisInputSource,db_user, db_pass, db_host, db_name, aisDb_table, 
+				db_numIterations, radarDb_table, create_RadarTable, create_AISTable);
+		}
+	}
 	return 0;
 }
 
