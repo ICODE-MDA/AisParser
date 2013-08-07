@@ -75,7 +75,10 @@ public:
 			}
 			else
 			{
-				aisDebug("Message does not have 9||10 columns\n" + m_fullSentence);
+				//aisDebug("PVOL?? Message does not have 9||10 columns\n" + m_fullSentence);
+				if((m_parsedSentence[0].length() >= 5) && (m_parsedSentence[0].substr(1,4).compare("PVOL") == 0)) {
+					return isRadarData();
+				}
 			}
 			return false;
 		}
@@ -121,7 +124,23 @@ public:
 			return false;
 		}
 	}
-
+	/**	
+	Call isMessageValid() before using this function
+	*/
+	bool isRadarData(){
+		// Check if data PVOL data is from a radar
+		if (boost::find_first(m_fullSentence,"shore-radar")){
+			//aisDebug("This is a radar message");
+			return true;
+		}
+		else
+		{
+			//aisDebug("Not a radar message");
+			//aisDebug(m_fullSentence);
+			return false;
+		}
+		return false;
+	}
 	/**	
 	Call isMessageValid() before using this function
 	*/
@@ -156,7 +175,12 @@ public:
 	std::string getData(){
 		return m_parsedSentence[5];
 	}
-
+	/**
+	Call isChecksumValid() before using this function
+	*/
+	std::vector<std::string> getRadarData(){
+		return m_parsedSentence;
+	}
 private:
 };
 
