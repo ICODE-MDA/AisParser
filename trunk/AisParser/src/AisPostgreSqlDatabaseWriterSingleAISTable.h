@@ -139,7 +139,6 @@ public:
 				boost::lexical_cast<std::string>(message.getETA())+ ", " +
 				boost::lexical_cast<std::string>(message.getPOSFIXTYPE())+ ", '" +
 				sanitize(boost::lexical_cast<std::string>(message.getSTREAMID()))+ "')";
-			//cout << m_sqlStatement << endl;
 			if(m_currentIteration++ == m_iterations || m_iterations <= 0)
 			{
 				m_currentIteration = 1;
@@ -213,7 +212,6 @@ public:
 				boost::lexical_cast<std::string>(message.getETA())+ ", " +
 				boost::lexical_cast<std::string>(message.getPOSFIXTYPE())+ ", '" +
 				sanitize(boost::lexical_cast<std::string>(message.getSTREAMID()))+ "')";*/
-			cout << m_sqlStatement << endl;
 			if(m_currentIteration++ == m_iterations || m_iterations <= 0)
 			{
 				m_currentIteration = 1;
