@@ -18,6 +18,7 @@
 
 //Parsers
 #include <AisMessageParser.h>
+#include <RadarMessageParser.h>
 
 #include <AisMessage.h>
 #include <AisDebug.h>
@@ -181,7 +182,6 @@ int trackParser(AisInputSource& aisInputSource, string filename, unsigned int tr
 						//add streamid from ais sentence to the ais message
 						aisMessage.setSTREAMID(aisSentenceParser.getStreamId());
 						//aisWriter.writeEntry(aisMessage);
-						cout << " message type " << aisMessage.getMESSAGETYPE() << endl;
 						aisWriter.writeEntry(aisMessage);
 					}
 					catch(exception &e)
@@ -313,7 +313,7 @@ void tcpToDatabaseParserUsage()
 }
 void tcpToDatabaseParserWtableUsage()
 {
-	cerr << "TcpToPostgreSqlDbWtable.exe <TCIP_hostname> <TCIP_port> <db-username> <db-password> <db-hostname> <db-name> <db-table> <db-numIterations>" << endl;
+	cerr << "TcpToPostgreSqlDbWtable.exe <TCIP_hostname> <TCIP_port> <db-username> <db-password> <db-hostname> <db-name> <db-numIterations> [<aisdb-table> <radardb-table>] " << endl;
 	cerr << "For example:\n AisParserApp.exe localhost 2410 username password databaseserver.example.com exampleDB 100000" << endl;
 }
 void flatfileToDatabaseParserUsage()
@@ -324,6 +324,18 @@ void flatfileToDatabaseParserUsage()
 	cerr << "For example:\n AisParserApp.exe 20111010.log username password databaseserver.example.com exampleDB AISTable 100000 staticAISTable" << endl;
 	cerr << "...OR..." << endl;
 	cerr << "For example:\n AisParserApp.exe 20111010.log username password databaseserver.example.com exampleDB AISTable 100000" << endl;
+}
+void LogToPostgreSqlDb()
+{
+	cerr << "This application will parse and push AIS messages to a database specified on the command line." << endl;
+	cerr << "If you specify a radar table, it will push radar messages to the radar table;otherwise, only AIS messages are pushed to AIStable specified" << endl;
+	cerr << "Optional Usage: the user may specific a start and stop unix time to limit the data pasred into the database tables" << endl;
+	cerr << "LogToPostgreSqlDb.exe <input-filename> <db-username> <db-password> <db-hostname> <db-name> <db-table> <db-numIterations> [<db-radar-table> <unix start time> <unix end time>]" << endl;
+	cerr << "For example:\n AisParserApp.exe 20111010.log username password databaseserver.example.com exampleDB AISTable 100000 radarTable" << endl;
+	cerr << "...OR..." << endl;
+	cerr << "For example:\n AisParserApp.exe 20111010.log username password databaseserver.example.com exampleDB AISTable 100000" << endl;
+	cerr << "...OR..." << endl;
+	cerr << "For example:\n AisParserApp.exe 20111010.log username password databaseserver.example.com exampleDB AISTable 100000 radarTable 1375806152 1375806158" << endl;
 }
 
 template<class DatabaseWriterType, class AisSentenceParserType>
@@ -425,7 +437,7 @@ int databaseParser(AisInputSource& aisInputSource,string db_user, string db_pass
 }
 template<class DatabaseWriterType, class AisSentenceParserType>
 int databaseParserLimitTime(AisInputSource& aisInputSource,string db_user, string db_pass, string db_host, string db_name, string db_table, 
-	string db_numIterations, string db_static_table, int unix_start, int unix_end )
+	string db_numIterations, string db_static_table, int unix_start, int unix_end)
 {
 	boost::timer::auto_cpu_timer timer;
 
@@ -438,10 +450,12 @@ int databaseParserLimitTime(AisInputSource& aisInputSource,string db_user, strin
 	
 	//Define output class (an AisWriter)
 	//STEPX: choose the correct type of output source
+	
 	DatabaseWriterType aisWriterD(db_user, db_pass, db_host, db_name, db_table, boost::lexical_cast<int>(db_numIterations));
 	std::shared_ptr<DatabaseWriterType> aisWriterS;
 	if(splitStaticAndDynamic){
-		aisWriterS = std::shared_ptr<DatabaseWriterType>(new DatabaseWriterType(db_user, db_pass, db_host, db_name, db_static_table, boost::lexical_cast<int>(db_numIterations)));
+		aisWriterS = std::shared_ptr<DatabaseWriterType>(new DatabaseWriterType(db_user, db_pass, db_host, db_name, db_static_table, 
+			boost::lexical_cast<int>(db_numIterations)));
 		if(!aisWriterS->isReady())
 		{
 			aisDebug("AisWriter is not ready");
@@ -496,7 +510,6 @@ int databaseParserLimitTime(AisInputSource& aisInputSource,string db_user, strin
 				
 				if ((unix_start <= aisMessage.getDATETIME()) && (aisMessage.getDATETIME() <= unix_end))
 				{
-					cout << "Write Out: AIS time " << aisMessage.getDATETIME() << " unix_start " << unix_start << " unix_end " << unix_end << endl;
 					if ((message_type == 5 || message_type == 24) && splitStaticAndDynamic)
 					{
 						aisWriterS->writeEntry(aisMessage);
@@ -510,6 +523,206 @@ int databaseParserLimitTime(AisInputSource& aisInputSource,string db_user, strin
 				catch(exception &e)
 				{
 					cerr << e.what() << endl;
+				}
+			}
+			else if (aisSentenceParser.isRadarData())
+			{
+				RadarMessage radarMessage = radarMessageParser.parseRadar(aisSentenceParser.getRadarData());
+			}
+			else
+			{
+				aisDebug("First sentence of message was invalid/not receieved.\nSkipping the rest of the sentences of this message");
+				continue;
+			}
+		}
+		else
+		{
+			//aisDebug("Invalid message:\n" + aisSentenceParser.getCurrentSentence());
+		}
+	}
+	return 0;
+}
+
+template<class DatabaseWriterType, class AisSentenceParserType>
+int databaseParserAIS_Radar(AisInputSource& aisInputSource,string db_user, string db_pass, string db_host, string db_name, string aisDb_table, 
+	string db_numIterations, string radarDb_table, bool create_RadarTable, bool create_AISTable)
+{
+	boost::timer::auto_cpu_timer timer;
+
+	/*bool splitAISAndRadar = false;
+	if(radarDb_table!="")
+	{
+		splitAISAndRadar = true;
+	}*/
+	
+	
+	//Define output class (an AisWriter)
+	//STEPX: choose the correct type of output source
+	DatabaseWriterType aisWriterAis(db_user, db_pass, db_host, db_name, aisDb_table, boost::lexical_cast<int>(db_numIterations),create_RadarTable, create_AISTable);
+	std::shared_ptr<DatabaseWriterType> aisWriterRadar;
+	
+	aisWriterRadar = std::shared_ptr<DatabaseWriterType>(new DatabaseWriterType(db_user, db_pass, db_host, db_name, radarDb_table, 
+			boost::lexical_cast<int>(db_numIterations),create_RadarTable, create_AISTable));
+	if(!aisWriterRadar->isReady())
+	{
+		aisDebug("AisWriterRadar is not ready");
+		return -1;
+	}
+	
+
+	if(!aisWriterAis.isReady())
+	{
+		aisDebug("AisWriter is not ready");
+		return -1;
+	}
+	while(aisInputSource.isReady())
+	{
+		//load the next sentence from the AIS input to the parser
+		//STEPX: choose the correct type of sentence parser
+		AisSentenceParserType aisSentenceParser(aisInputSource.getNextSentence());
+		AisMessageParser aisMessageParser;
+		RadarMessageParser radarMessageParser;
+
+		if(aisSentenceParser.isMessageValid())
+		{
+			//This check is to make sure that if the first sentence of the message
+			//was bad we won't read the second sentence and parse it as a new message
+			if(aisSentenceParser.getSentenceNumber()==1)
+			{
+				aisMessageParser.addData(aisSentenceParser.getData());	
+				//if the current sentence is part of a multipart message
+				//grab the next message until you have them all, or message is invalid
+				try
+				{
+					while(aisSentenceParser.getSentenceNumber() < aisSentenceParser.getNumberOfSentences())
+					{
+						aisSentenceParser.setSentence(aisInputSource.getNextSentence());
+						if(aisSentenceParser.isMessageValid()){
+							aisMessageParser.addData(aisSentenceParser.getData());	
+						}
+						else
+						{
+							//aisDebug("Invalid multipart message:\n" + aisSentenceParser.getCurrentSentence());
+							throw std::runtime_error("Invalid multipart message");
+						}
+					}
+
+					AisMessage aisMessage = aisMessageParser.parseMessage();
+					//add time from ais sentence to the ais message
+					aisMessage.setDATETIME(aisSentenceParser.getTimestamp());
+					//add streamid from ais sentence to the ais message
+					aisMessage.setSTREAMID(aisSentenceParser.getStreamId());
+					aisWriterAis.writeEntry(aisMessage);
+					
+				}
+				catch(exception &e)
+				{
+					cerr << e.what() << endl;
+				}
+			}
+			else if (aisSentenceParser.isRadarData())
+			{
+				RadarMessage radarMessage = radarMessageParser.parseRadar(aisSentenceParser.getRadarData());
+				aisWriterRadar->writeEntryRadar(radarMessage);
+				
+			}
+			else
+			{
+				aisDebug("First sentence of message was invalid/not receieved.\nSkipping the rest of the sentences of this message");
+				continue;
+			}
+		}
+		else
+		{
+			//aisDebug("Invalid message:\n" + aisSentenceParser.getCurrentSentence());
+		}
+	}
+	return 0;
+}
+template<class DatabaseWriterType, class AisSentenceParserType>
+int databaseParserAIS_RadarLimitTime(AisInputSource& aisInputSource,string db_user, string db_pass, string db_host, string db_name, string aisDb_table, 
+	string db_numIterations, string radarDb_table, int unix_start, int unix_end, bool create_RadarTable, bool create_AISTable)
+{
+	boost::timer::auto_cpu_timer timer;
+
+	/*bool splitAISAndRadar = false;
+	if(radarDb_table!="")
+	{
+		splitAISAndRadar = true;
+	}*/
+	
+	
+	//Define output class (an AisWriter)
+	//STEPX: choose the correct type of output source
+	DatabaseWriterType aisWriterAis(db_user, db_pass, db_host, db_name, aisDb_table, boost::lexical_cast<int>(db_numIterations),create_RadarTable, create_AISTable);
+	std::shared_ptr<DatabaseWriterType> aisWriterRadar;
+	aisWriterRadar = std::shared_ptr<DatabaseWriterType>(new DatabaseWriterType(db_user, db_pass, db_host, db_name, radarDb_table, 
+	boost::lexical_cast<int>(db_numIterations),create_RadarTable, create_AISTable));
+	if(!aisWriterRadar->isReady())
+	{
+		aisDebug("AisWriterRadra is not ready");
+		return -1;
+	}
+	
+
+	if(!aisWriterAis.isReady())
+	{
+		aisDebug("AisWriter is not ready");
+		return -1;
+	}
+	while(aisInputSource.isReady())
+	{
+		//load the next sentence from the AIS input to the parser
+		//STEPX: choose the correct type of sentence parser
+		AisSentenceParserType aisSentenceParser(aisInputSource.getNextSentence());
+		AisMessageParser aisMessageParser;
+		RadarMessageParser radarMessageParser;
+
+		if(aisSentenceParser.isMessageValid())
+		{
+			//This check is to make sure that if the first sentence of the message
+			//was bad we won't read the second sentence and parse it as a new message
+			if(aisSentenceParser.getSentenceNumber()==1)
+			{
+				aisMessageParser.addData(aisSentenceParser.getData());	
+				//if the current sentence is part of a multipart message
+				//grab the next message until you have them all, or message is invalid
+				try
+				{
+					while(aisSentenceParser.getSentenceNumber() < aisSentenceParser.getNumberOfSentences())
+					{
+						aisSentenceParser.setSentence(aisInputSource.getNextSentence());
+						if(aisSentenceParser.isMessageValid()){
+							aisMessageParser.addData(aisSentenceParser.getData());	
+						}
+						else
+						{
+							//aisDebug("Invalid multipart message:\n" + aisSentenceParser.getCurrentSentence());
+							throw std::runtime_error("Invalid multipart message");
+						}
+					}
+
+					AisMessage aisMessage = aisMessageParser.parseMessage();
+					//add time from ais sentence to the ais message
+					aisMessage.setDATETIME(aisSentenceParser.getTimestamp());
+					//add streamid from ais sentence to the ais message
+					aisMessage.setSTREAMID(aisSentenceParser.getStreamId());
+					if ((unix_start <= aisMessage.getDATETIME()) && (aisMessage.getDATETIME() <= unix_end))
+					{
+						aisWriterAis.writeEntry(aisMessage);
+					}
+				}
+				catch(exception &e)
+				{
+					cerr << e.what() << endl;
+				}
+			}
+			else if (aisSentenceParser.isRadarData())
+			{
+				RadarMessage radarMessage = radarMessageParser.parseRadar(aisSentenceParser.getRadarData());
+				if ((unix_start <= radarMessage.getDATETIME()) && (radarMessage.getDATETIME() <= unix_end))
+				{
+						aisWriterRadar->writeEntryRadar(radarMessage);
 				}
 			}
 			else
