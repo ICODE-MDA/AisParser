@@ -25,6 +25,12 @@
 
 using namespace std;
 
+void tcpToTcpParserUsage()
+{
+	cerr << "AisParserApp.exe <source-hostname> <source-port> <destination-hostname> <destination-port>" << endl;
+	cerr << "Will parse the AIS messages coming from source and push to destination as JSON.\n" << endl;
+}
+
 void tcpToFlatfileParserUsage()
 {
 	cerr << "AisParserApp.exe <hostname> <port> <number-of-entries-per-tsv>" << endl;
@@ -41,8 +47,94 @@ void flatfileParserUsage()
 }
 
 template<class OutputType, class AisSentenceParserType>
+int tcpParser(AisInputSource& aisInputSource, string destination_host = "", string destination_port = "")
+{
+
+	boost::timer::auto_cpu_timer timer;
+	
+	unsigned int partition = 0;
+
+	while(aisInputSource.isReady())
+	{
+		std::shared_ptr<OutputType> aisWriter;
+		
+		//Define output class (an AisWriter)
+		//STEPX: choose the correct type of output source
+		if(destination_host != "" && destination_port!="")
+		{
+			aisWriter = std::shared_ptr<OutputType>(new OutputType(destination_host, destination_port));
+		}
+
+		if(!aisWriter->isReady())
+		{
+			aisDebug("AisWriter is not ready");
+			return -1;
+		}
+
+		for(unsigned int messageCount = 0; aisInputSource.isReady(); messageCount++)
+		{
+
+			//load the next sentence from the AIS input to the parser
+			//STEPX: choose the correct type of sentence parser
+			AisSentenceParserType aisSentenceParser(aisInputSource.getNextSentence());
+			AisMessageParser aisMessageParser;
+
+			if(aisSentenceParser.isMessageValid())
+			{
+				//This check is to make sure that if the first sentence of the message
+				//was bad we won't read the second sentence and parse it as a new message
+				if(aisSentenceParser.getSentenceNumber()==1)
+				{
+					aisMessageParser.addData(aisSentenceParser.getData());	
+					//if the current sentence is part of a multipart message
+					//grab the next message until you have them all, or message is invalid
+					try
+					{
+						while(aisSentenceParser.getSentenceNumber() < aisSentenceParser.getNumberOfSentences())
+						{
+							aisSentenceParser.setSentence(aisInputSource.getNextSentence());
+							if(aisSentenceParser.isMessageValid()){
+								aisMessageParser.addData(aisSentenceParser.getData());	
+							}
+							else
+							{
+								//aisDebug("Invalid multipart message:\n" + aisSentenceParser.getCurrentSentence());
+								throw std::runtime_error("Invalid multipart message");
+							}
+						}
+
+						AisMessage aisMessage = aisMessageParser.parseMessage();
+						//add time from ais sentence to the ais message
+						aisMessage.setDATETIME(aisSentenceParser.getTimestamp());
+						//add streamid from ais sentence to the ais message
+						aisMessage.setSTREAMID(aisSentenceParser.getStreamId());
+
+						aisWriter->writeEntry(aisMessage);
+					}
+					catch(exception &e)
+					{
+						cerr << e.what() << endl;
+					}
+				}
+				else
+				{
+					aisDebug("First sentence of message was invalid/not receieved.\nSkipping the rest of the sentences of this message");
+					continue;
+				}
+			}
+			else
+			{
+				//aisDebug("Invalid message:\n" + aisSentenceParser.getCurrentSentence());
+			}
+		}
+	}
+	return 0;
+}
+
+template<class OutputType, class AisSentenceParserType>
 int flatfileParser(AisInputSource& aisInputSource, string filename, unsigned int messagesPerFile)
 {
+	
 	boost::timer::auto_cpu_timer timer;
 	
 	unsigned int partition = 0;

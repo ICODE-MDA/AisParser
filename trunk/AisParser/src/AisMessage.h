@@ -1,6 +1,10 @@
 #ifndef AISMESSAGE_H
 #define AISMESSAGE_H
 #include <string>
+#include <sstream>
+#include <iomanip>
+
+#include <boost/algorithm/string.hpp>
 
 using namespace std;
 
@@ -494,6 +498,39 @@ public:
 		this->POSFIXTYPE = POSFIXTYPE;
 	}
 
+	string getJSON() const
+	{
+		stringstream ss;
+		ss << setprecision(10) << 
+			"{ \"messageType\":" << this->getMESSAGETYPE() << ", " <<
+			"\"mmsi\":" << this->getMMSI() << ", " <<
+			"\"navStatus\":" << this->getNAVSTATUS() << ", " <<
+			"\"rot\":" << this->getROT() << ", " <<
+			"\"sog\":" << this->getSOG() << ", " <<
+			"\"lon\":" << this->getLON() << ", " <<
+			"\"lat\":" << this->getLAT() << ", " <<
+			"\"cog\":" << this->getCOG() << ", " <<
+			"\"trueHeading\":" << this->getTRUE_HEADING() << ", " <<
+			"\"dateTime\":" << this->getDATETIME() << ", " <<
+			"\"imo\":" << this->getIMO() << ", " <<
+			"\"vesselName\": \"" <<  cleanForJSON(this->getVESSELNAME()) << "\", " <<
+			"\"vesselTypeInt\":" << this->getVESSELTYPEINT() << ", " <<
+			"\"shipLength\":" << this->getSHIPLENGTH() << ", " <<
+			"\"shipWidth\":" << this->getSHIPWIDTH() << ", " <<
+			"\"bow\":" << this->getBOW() << ", " <<
+			"\"stern\":" << this->getSTERN() << ", " <<
+			"\"port\":" << this->getPORT() << ", " <<
+			"\"starboard\":" << this->getSTARBOARD() << ", " <<
+			"\"draught\":" << this->getDRAUGHT() << ", " <<
+			"\"destination\": \"" <<  cleanForJSON(this->getDESTINATION()) << "\", " <<
+			"\"callsign\": \"" <<  cleanForJSON(this->getCALLSIGN()) << "\", " <<
+			"\"positionAccuracy\":" << this->getPOSACCURACY() << ", " <<
+			"\"eta\":" << this->getETA() << ", " <<
+			"\"positionFixType\":" << this->getPOSFIXTYPE() << ", " <<
+			"\"streamId\": \"" <<  cleanForJSON(this->getSTREAMID()) << "\"}";
+		return ss.str();
+	}
+
 	double time;
 	int Year;
 	int Month;
@@ -511,6 +548,10 @@ public:
 	double AssociatedImageResolution;
 
 private:
+
+	std::string cleanForJSON(const std::string& input) const{
+		return boost::replace_all_copy(boost::replace_all_copy(input, "\\", "\\\\"), "\"", "\\\"");
+	}
 
 	int MESSAGETYPE;
 	double MMSI;
