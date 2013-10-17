@@ -17,8 +17,9 @@ void usage()
 	std::cerr << "This program will broadcast text on a TCP port specified on the command prompt" << endl;
 	std::cerr << "Each AIS message must be no longer than 1024 characters" << std::endl;
 	std::cerr << "\nUsage:" << endl;
-	std::cerr << "CannedAisServer.exe <ais-file-to-broadcast> <port-to-broadcast-on> <ms-between-messages> <option keepRepeating (bool)>" << std::endl;
+	std::cerr << "CannedAisServer.exe <ais-file-to-broadcast> <port-to-broadcast-on> <ms-between-messages> <keepRepeating (optional - defaults to 1)>" << std::endl;
 	std::cerr << "For example:\nCannedAisServer.exe 20120101.log 2401 10" << std::endl;
+	std::cerr << "For example:\nCannedAisServer.exe 20120101.log 2401 10 0" << std::endl;
 	std::cerr << "****WARNING****\nThis program loads the entire file into memory before broadcasting. " 
 				 "It is meant for small amounts of data. Do not give large files as input as it may "
 				 "result in system crashes.\n***************" << std::endl;
@@ -46,7 +47,7 @@ void loadData(string filename, vector<string> &messages)
 int main(int argc, char** argv)
 {
 
-	if(argc>5 || argc < 2)
+	if(argc>5 || argc < 4)
 	{
 		usage();
 		return -1;
@@ -101,7 +102,7 @@ int main(int argc, char** argv)
 				} 
 				else {
 					cout << "Exit: End of file reached " << endl;
-					exit(1);
+					return 0;
 				}
 			}
 		}
