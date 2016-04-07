@@ -94,7 +94,8 @@ int main(int argc, char** argv)
 			}
 			boost::asio::deadline_timer timer(io_service, boost::posix_time::milliseconds(msBetweenMessages));
 			timer.wait();
-			stream << messages[idx++] << endl;
+			boost::trim(messages[idx++]);
+			stream << messages[idx++] + "\r\n";
 			
 			if(idx==numMessages){
 				if (keepRepeating) {
